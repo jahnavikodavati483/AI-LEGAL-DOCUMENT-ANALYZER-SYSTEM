@@ -37,32 +37,48 @@ HISTORY_FILE = Path("history.json")
 for f in [USERS_FILE, HISTORY_FILE]:
     if not f.exists():
         f.write_text("{}")
-# ------------------ PASSWORD UTILS ------------------
+# ------------------ PASSWORD UTILS (Persistent Multi-User Login) ------------------
+
 def hash_password(password):
+    """Converts password into a SHA-256 hash string."""
     return hashlib.sha256(password.encode()).hexdigest()
 
-# ------------------ STATIC USER DATA (Permanent Login) ------------------
-USERS = {
-    "jahnavikodavati483@gmail.com": "b6b3b44f7b5a3e327af707b69a2f14858ef9b2c86f6c2e10e1eb9b9cbe9b8d18"  # password = "admin123"
-}
+
+def load_users():
+    """Load existing users from users.json. If missing, create it."""
+    try:
+        with open(USERS_FILE, "r") as f:
+            data = json.load(f)
+            if isinstance(data, dict):
+                return data
+            else:
+                return {}
+    except (FileNotFoundError, json.JSONDecodeError):
+        USERS_FILE.write_text("{}")
+        return {}
+
+
+def save_users(users):
+    """Save users to users.json file."""
+    with open(USERS_FILE, "w") as f:
+        json.dump(users, f, indent=2)
+
 
 def verify_user(email, password):
+    """Check if given credentials are valid."""
+    users = load_users()
     hashed = hash_password(password)
-    return email in USERS and USERS[email] == hashed
-
-def register_user(email, password):
-    st.warning("Registration is disabled in this version.")
-    return False
+    return email in users and users[email] == hashed
 
 
 def register_user(email, password):
-    users = json.loads(USERS_FILE.read_text())
+    """Register a new user persistently."""
+    users = load_users()
     if email in users:
-        return False
+        return False  # Email already exists
     users[email] = hash_password(password)
-    USERS_FILE.write_text(json.dumps(users))
+    save_users(users)
     return True
-
 # ------------------ OCR FUNCTION ------------------
 def extract_text_with_ocr(pdf_path):
     """Extracts text from scanned PDFs using OCR."""
@@ -104,10 +120,12 @@ def login_page():
         email = st.text_input("Email", key="reg_email")
         password = st.text_input("Password", type="password", key="reg_pass")
         if st.button("Register"):
-            if register_user(email, password):
-                st.success("✅ Account created! Please login.")
-            else:
-                st.error("⚠ Email already registered.")
+    if register_user(email, password):
+        st.success("✅ Account created successfully!")
+        st.session_state["user"] = email
+        st.rerun()  # Automatically logs in and refreshes the dashboard
+    else:
+        st.warning("⚠ Email already registered. Please login.")
 
 # ------------------ SIDEBAR ------------------
 def sidebar_nav():
