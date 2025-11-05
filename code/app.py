@@ -152,7 +152,11 @@ def sidebar_nav():
 
 # ------------------ SAVE HISTORY ------------------
 def save_history(user, doc_type, risk, filename):
-    history = json.loads(HISTORY_FILE.read_text())
+    try:
+        history = json.loads(HISTORY_FILE.read_text())
+    except json.JSONDecodeError:
+        history = {}
+
     if user not in history:
         history[user] = []
     entry = {"file": filename, "type": doc_type, "risk": risk}
