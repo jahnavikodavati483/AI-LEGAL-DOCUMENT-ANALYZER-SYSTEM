@@ -29,8 +29,8 @@ DATA_REPORTS = Path("../data/reports")
 for path in [DATA_RAW, DATA_REPORTS]:
     path.mkdir(parents=True, exist_ok=True)
 
-USERS_FILE = Path("users.json")
-HISTORY_FILE = Path("history.json")
+USERS_FILE = Path("code/users.json")
+HISTORY_FILE = Path("code/history.json")
 
 for f in [USERS_FILE, HISTORY_FILE]:
     if not f.exists():
