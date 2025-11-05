@@ -1,7 +1,7 @@
 # ============================================================
 # AI Legal Document Analyzer - Streamlit Dashboard
 # Developed by Jahnavi Kodavati & Swejan | CSE - AI | SSE Chennai
-# Final Version - Functional Pages + OCR Support + Styled Clauses
+# Final Version with Improved Styling and History Management
 # ============================================================
 
 import streamlit as st
@@ -212,7 +212,6 @@ def main_dashboard():
                 st.subheader("🧠 Summary")
                 st.success(summary)
 
-                # -------- Key Clauses --------
                 st.subheader("📑 Key Clauses")
                 for clause, info in clauses.items():
                     found = info["found"]
@@ -221,9 +220,9 @@ def main_dashboard():
                     status = "✅ Found" if found else "❌ Missing"
                     st.markdown(
                         f"""
-                        <div style='background:#f9f9ff;padding:10px;border-left:5px solid {color};
-                        border-radius:8px;margin-bottom:10px;'>
-                            <b>{clause}</b> — <span style='color:{color};font-weight:bold'>{status}</span><br>
+                        <div class='clause-card' style='border-left:5px solid {color};'>
+                            <b>{clause}</b> — 
+                            <span style='color:{color};font-weight:bold'>{status}</span><br>
                             <small>{excerpt}</small>
                         </div>
                         """,
@@ -237,8 +236,22 @@ def main_dashboard():
         if not user_history:
             st.info("No reports yet.")
         else:
-            for item in user_history:
-                st.markdown(f"📄 {item['file']} → Type: {item['type']} | Risk: {item['risk']}")
+            for item in user_history[::-1]:
+                color = (
+                    "#4CAF50" if item["risk"] == "Low"
+                    else "#FFC107" if item["risk"] == "Medium"
+                    else "#F44336"
+                )
+                st.markdown(
+                    f"""
+                    <div class='report-card' style='border-left:6px solid {color};'>
+                        <b>📄 {item['file']}</b><br>
+                        <span>📁 Type: <b>{item['type']}</b></span><br>
+                        <span>⚠ Risk Level: <b style='color:{color}'>{item['risk']}</b></span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
 
     elif choice == "⚠ Risk Analysis":
         st.subheader("⚠ Risk Level Overview")
@@ -251,6 +264,11 @@ def main_dashboard():
             med = [d for d in user_history if d["risk"] == "Medium"]
             high = [d for d in user_history if d["risk"] == "High"]
             st.write(f"🟢 Low: {len(low)} | 🟡 Medium: {len(med)} | 🔴 High: {len(high)}")
+            if st.button("🗑 Clear History"):
+                history[user] = []
+                HISTORY_FILE.write_text(json.dumps(history, indent=2))
+                st.success("✅ History cleared successfully!")
+                st.rerun()
 
 # ------------------ APP ENTRY ------------------
 def main():
