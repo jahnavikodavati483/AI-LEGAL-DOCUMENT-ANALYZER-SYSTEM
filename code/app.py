@@ -31,7 +31,7 @@ except Exception:
 
 # ------------------ PATH SETUP ------------------
 # app.py lives in code/ — store persistent files (users/history) at repo root
-BASE_DIR = Path(_file_).resolve().parent            # code/
+BASE_DIR = Path(__file__).resolve().parent            # code/
 REPO_ROOT = BASE_DIR.parent                           # project root
 DATA_RAW = REPO_ROOT / "data" / "raw documents"
 DATA_REPORTS = REPO_ROOT / "data" / "reports"
