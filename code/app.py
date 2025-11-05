@@ -31,6 +31,7 @@ for path in [DATA_RAW, DATA_REPORTS]:
 
 USERS_FILE = Path("users.json")
 HISTORY_FILE = Path("history.json")
+
 for f in [USERS_FILE, HISTORY_FILE]:
     if not f.exists():
         f.write_text("{}")
@@ -39,21 +40,57 @@ for f in [USERS_FILE, HISTORY_FILE]:
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
+def load_users():
+    try:
+        with open(USERS_FILE, "r") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        USERS_FILE.write_text("{}")
+        return {}
+
+def save_users(users):
+    with open(USERS_FILE, "w") as f:
+        json.dump(users, f, indent=2)
+
 def verify_user(email, password):
-    users = json.loads(USERS_FILE.read_text())
-    return email in users and users[email] == hash_password(password)
+    users = load_users()
+    hashed = hash_password(password)
+    return email in users and users[email]["password"] == hashed
 
 def register_user(email, password):
-    users = json.loads(USERS_FILE.read_text())
+    users = load_users()
     if email in users:
         return False
-    users[email] = hash_password(password)
-    USERS_FILE.write_text(json.dumps(users))
+    users[email] = {"password": hash_password(password), "remember": True}
+    save_users(users)
     return True
+
+def remember_user(email):
+    """Remember user for auto-login."""
+    users = load_users()
+    for u in users:
+        users[u]["remember"] = False
+    if email in users:
+        users[email]["remember"] = True
+    save_users(users)
+
+def get_remembered_user():
+    """Fetch last remembered user."""
+    users = load_users()
+    for email, info in users.items():
+        if info.get("remember"):
+            return email
+    return None
+
+def forget_user(email):
+    """Forget user when they log out."""
+    users = load_users()
+    if email in users:
+        users[email]["remember"] = False
+        save_users(users)
 
 # ------------------ OCR FUNCTION ------------------
 def extract_text_with_ocr(pdf_path):
-    """Extracts text from scanned PDFs using OCR."""
     text = ""
     try:
         pages = convert_from_path(pdf_path, dpi=300)
@@ -76,33 +113,38 @@ def login_page():
     )
 
     tab1, tab2 = st.tabs(["Login", "Register"])
+
+    # ---------- LOGIN ----------
     with tab1:
         email = st.text_input("Email", key="login_email")
         password = st.text_input("Password", type="password", key="login_pass")
         if st.button("Login"):
             if verify_user(email, password):
                 st.session_state["user"] = email
-                st.success("✅ Login successful!")
-                st.query_params
+                remember_user(email)
+                st.success(f"✅ Welcome back, {email}!")
                 st.rerun()
             else:
                 st.error("❌ Invalid credentials.")
 
+    # ---------- REGISTER ----------
     with tab2:
         email = st.text_input("Email", key="reg_email")
         password = st.text_input("Password", type="password", key="reg_pass")
         if st.button("Register"):
             if register_user(email, password):
-                st.success("✅ Account created! Please login.")
+                st.success("✅ Account created successfully!")
+                st.session_state["user"] = email
+                remember_user(email)
+                st.rerun()
             else:
-                st.error("⚠ Email already registered.")
+                st.warning("⚠ Email already registered. Please login.")
 
 # ------------------ SIDEBAR ------------------
 def sidebar_nav():
     st.sidebar.markdown("<h2 class='sidebar-title'>⚖ Legal Analyzer Dashboard</h2>", unsafe_allow_html=True)
     menu = ["📄 Analyze Document", "🔍 Compare Documents", "📊 Reports", "⚠ Risk Analysis", "🚪 Logout"]
     choice = st.sidebar.radio("Navigate", menu, label_visibility="collapsed")
-
     st.sidebar.markdown("---")
     lang = st.sidebar.selectbox("🌐 Language", ["English", "Hindi", "Tamil", "Telugu"], key="lang_select")
     st.session_state["language"] = lang
@@ -114,7 +156,7 @@ def save_history(user, doc_type, risk, filename):
     if user not in history:
         history[user] = []
     entry = {"file": filename, "type": doc_type, "risk": risk}
-    if entry not in history[user]:  # avoid duplicates
+    if entry not in history[user]:
         history[user].append(entry)
     HISTORY_FILE.write_text(json.dumps(history, indent=2))
 
@@ -131,7 +173,9 @@ def main_dashboard():
 
     # -------- Logout --------
     if choice == "🚪 Logout":
+        forget_user(user)
         del st.session_state["user"]
+        st.success("✅ Logged out successfully!")
         st.rerun()
 
     # -------- Analyze Document --------
@@ -145,8 +189,6 @@ def main_dashboard():
                 with open(file_path, "wb") as f:
                     f.write(uploaded_file.getbuffer())
                 text = extract_text_from_pdf(str(file_path))
-
-                # If normal extraction fails, use OCR
                 if not text or len(text) < 20:
                     st.warning("⚠ Detected a scanned document. Applying OCR extraction...")
                     text = extract_text_with_ocr(str(file_path))
@@ -157,7 +199,6 @@ def main_dashboard():
                 st.error("❌ Could not extract readable text. Try uploading a clearer document.")
             else:
                 st.success("✅ Document successfully processed!")
-
                 doc_type = detect_contract_type(text)
                 clauses = detect_clauses_with_excerpts(text)
                 risk_level, risk_comment = assess_risk(clauses)
@@ -165,93 +206,19 @@ def main_dashboard():
 
                 save_history(user, doc_type, risk_level, uploaded_file.name if uploaded_file else "Manual Text")
 
-                word_count = len(text.split())
-                char_count = len(text)
-                sentence_count = text.count(".")
-
                 col1, col2, col3, col4 = st.columns(4)
-                col1.metric("Words", word_count)
-                col2.metric("Characters", char_count)
-                col3.metric("Sentences", sentence_count)
+                col1.metric("Words", len(text.split()))
+                col2.metric("Characters", len(text))
+                col3.metric("Sentences", text.count("."))
                 col4.metric("Risk", risk_level)
 
                 st.markdown("---")
                 st.subheader("📘 Document Overview")
-                st.write(f"*Detected Type:* {doc_type}")
-                st.write(f"*Risk Level:* {risk_level}")
+                st.write(f"Detected Type: {doc_type}")
+                st.write(f"Risk Level: {risk_level}")
                 st.info(risk_comment)
                 st.subheader("🧠 Summary")
                 st.success(summary)
-
-                # -------- KEY CLAUSES (Styled Layout) --------
-                st.subheader("📑 Key Clauses Found")
-                st.markdown("""
-                <style>
-                .clause-box {
-                    background-color: #f9f9ff;
-                    border-left: 5px solid #919dee;
-                    padding: 10px 15px;
-                    border-radius: 8px;
-                    margin-bottom: 10px;
-                }
-                .clause-title {
-                    font-weight: 600;
-                    color: #2b2b2b;
-                }
-                .clause-status {
-                    float: right;
-                    font-weight: bold;
-                }
-                .found {
-                    color: #008000;
-                }
-                .missing {
-                    color: #e63946;
-                }
-                </style>
-                """, unsafe_allow_html=True)
-
-                for clause, info in clauses.items():
-                    status_icon = "✅" if info["found"] else "❌"
-                    status_class = "found" if info["found"] else "missing"
-                    excerpt = info["excerpt"][:200] + "..." if info["found"] and info["excerpt"] else ""
-                    st.markdown(
-                        f"""
-                        <div class="clause-box">
-                            <span class="clause-title">{clause}</span>
-                            <span class="clause-status {status_class}">{status_icon} {'Found' if info['found'] else 'Missing'}</span>
-                            <br>
-                            <small>{excerpt}</small>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-
-                st.subheader("📜 Extracted Text")
-                st.text_area("Full Document Text", text[:4000] + "...", height=250)
-
-    # -------- Compare Documents --------
-    elif choice == "🔍 Compare Documents":
-        col1, col2 = st.columns(2)
-        file1 = col1.file_uploader("Upload First Document", type=["pdf"], key="cmp1")
-        file2 = col2.file_uploader("Upload Second Document", type=["pdf"], key="cmp2")
-        if file1 and file2:
-            p1 = DATA_RAW / file1.name
-            p2 = DATA_RAW / file2.name
-            with open(p1, "wb") as f:
-                f.write(file1.getbuffer())
-            with open(p2, "wb") as f:
-                f.write(file2.getbuffer())
-            t1 = extract_text_from_pdf(str(p1))
-            t2 = extract_text_from_pdf(str(p2))
-            sim = compare_versions(t1, t2)
-            st.metric("Similarity", f"{sim}%")
-            if sim > 80:
-                st.success("✅ Documents are very similar.")
-            elif sim > 50:
-                st.warning("⚠ Moderate differences found.")
-            else:
-                st.error("❌ Significant differences detected.")
 
     # -------- Reports --------
     elif choice == "📊 Reports":
@@ -262,35 +229,32 @@ def main_dashboard():
             st.info("No reports available yet.")
         else:
             for item in user_history:
-                st.markdown(f"📄 *{item['file']}* → Type: {item['type']} | Risk: *{item['risk']}*")
+                st.markdown(f"📄 {item['file']} → Type: {item['type']} | Risk: {item['risk']}")
 
     # -------- Risk Analysis --------
     elif choice == "⚠ Risk Analysis":
         st.subheader("⚠ Risk Level Overview")
         history = json.loads(HISTORY_FILE.read_text())
         user_history = history.get(user, [])
-
         if not user_history:
             st.info("No analyzed documents yet.")
         else:
             low = [d for d in user_history if d["risk"] == "Low"]
             med = [d for d in user_history if d["risk"] == "Medium"]
             high = [d for d in user_history if d["risk"] == "High"]
-            st.write(f"🟢 Low Risk: {len(low)} documents")
-            st.write(f"🟡 Medium Risk: {len(med)} documents")
-            st.write(f"🔴 High Risk: {len(high)} documents")
-
-            # Clear History Button in middle
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("🗑️ Clear History"):
-                history[user] = []
-                HISTORY_FILE.write_text(json.dumps(history, indent=2))
-                st.success("✅ History cleared successfully!")
-                st.rerun()
+            st.write(f"🟢 Low: {len(low)} | 🟡 Medium: {len(med)} | 🔴 High: {len(high)}")
 
 # ------------------ APP ENTRY ------------------
 def main():
     st.set_page_config(page_title="AI Legal Document Analyzer", layout="wide")
+
+    # Auto-login last remembered user
+    if "user" not in st.session_state:
+        remembered = get_remembered_user()
+        if remembered:
+            st.session_state["user"] = remembered
+            st.info(f"👋 Welcome back, {remembered}!")
+
     if "user" not in st.session_state:
         login_page()
     else:
