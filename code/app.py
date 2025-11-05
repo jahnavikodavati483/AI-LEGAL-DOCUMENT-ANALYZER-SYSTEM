@@ -31,9 +31,15 @@ for path in [DATA_RAW, DATA_REPORTS]:
 
 USERS_FILE = Path("users.json")
 HISTORY_FILE = Path("history.json")
-for f in [USERS_FILE, HISTORY_FILE]:
-    if not f.exists():
-        f.write_text("{}")
+
+# Default demo account setup
+if not USERS_FILE.exists():
+    demo_user = {"demo@legalai.com": hashlib.sha256("demo123".encode()).hexdigest()}
+    USERS_FILE.write_text(json.dumps(demo_user))
+
+if not HISTORY_FILE.exists():
+    HISTORY_FILE.write_text("{}")
+
 
 # ------------------ PASSWORD UTILS ------------------
 def hash_password(password):
