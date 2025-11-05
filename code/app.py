@@ -1,7 +1,7 @@
 # ============================================================
 # AI Legal Document Analyzer - Streamlit Dashboard
 # Developed by Jahnavi Kodavati & Swejan | CSE - AI | SSE Chennai
-# Final Version with Improved Styling and History Management
+# Final Version with Sidebar Spacing and Professional Styling
 # ============================================================
 
 import streamlit as st
@@ -134,7 +134,32 @@ def login_page():
 
 # ------------------ SIDEBAR ------------------
 def sidebar_nav():
-    st.sidebar.markdown("<h2>⚖ Legal Analyzer Dashboard</h2>", unsafe_allow_html=True)
+    st.sidebar.markdown(
+        """
+        <style>
+        [data-testid="stSidebar"] {
+            background-color: #e3e8ff;
+        }
+        .sidebar-title {
+            font-weight: 700;
+            color: #1e3a8a;
+            margin-bottom: 18px;
+        }
+        div[role="radiogroup"] > label {
+            margin-bottom: 12px !important;
+            padding: 6px 10px !important;
+            border-radius: 10px !important;
+            background: white !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.sidebar.markdown("<h2 class='sidebar-title'>⚖ Legal Analyzer Dashboard</h2>", unsafe_allow_html=True)
     menu = ["📄 Analyze Document", "🔍 Compare Documents", "📊 Reports", "⚠ Risk Analysis", "🚪 Logout"]
     choice = st.sidebar.radio("Navigate", menu, label_visibility="collapsed")
     st.sidebar.markdown("---")
@@ -237,46 +262,40 @@ def main_dashboard():
             st.info("No reports yet.")
         else:
             for item in user_history[::-1]:
-                color = (
-                    "#4CAF50" if item["risk"] == "Low"
-                    else "#FFC107" if item["risk"] == "Medium"
-                    else "#F44336"
-                )
                 st.markdown(
                     f"""
-                    <div class='report-card' style='border-left:6px solid {color};'>
+                    <div class='report-card'>
                         <b>📄 {item['file']}</b><br>
                         <span>📁 Type: <b>{item['type']}</b></span><br>
-                        <span>⚠ Risk Level: <b style='color:{color}'>{item['risk']}</b></span>
+                        <span>⚠ Risk Level: <b>{item['risk']}</b></span>
                     </div>
                     """,
                     unsafe_allow_html=True,
                 )
 
     elif choice == "⚠ Risk Analysis":
-    st.subheader("⚠ Risk Level Overview")
-    history = json.loads(HISTORY_FILE.read_text())
-    user_history = history.get(user, [])
-    if not user_history:
-        st.info("No analyzed documents yet.")
-    else:
-        low = [d for d in user_history if d["risk"] == "Low"]
-        med = [d for d in user_history if d["risk"] == "Medium"]
-        high = [d for d in user_history if d["risk"] == "High"]
+        st.subheader("⚠ Risk Level Overview")
+        history = json.loads(HISTORY_FILE.read_text())
+        user_history = history.get(user, [])
+        if not user_history:
+            st.info("No analyzed documents yet.")
+        else:
+            low = [d for d in user_history if d["risk"] == "Low"]
+            med = [d for d in user_history if d["risk"] == "Medium"]
+            high = [d for d in user_history if d["risk"] == "High"]
 
-        st.markdown("<div class='risk-box'><span>🟢 Low Risk:</span> "
-                    f"{len(low)} document(s)</div>", unsafe_allow_html=True)
-        st.markdown("<div class='risk-box'><span>🟡 Medium Risk:</span> "
-                    f"{len(med)} document(s)</div>", unsafe_allow_html=True)
-        st.markdown("<div class='risk-box'><span>🔴 High Risk:</span> "
-                    f"{len(high)} document(s)</div>", unsafe_allow_html=True)
+            st.markdown("<div class='risk-box'><span>🟢 Low Risk:</span> "
+                        f"{len(low)} document(s)</div>", unsafe_allow_html=True)
+            st.markdown("<div class='risk-box'><span>🟡 Medium Risk:</span> "
+                        f"{len(med)} document(s)</div>", unsafe_allow_html=True)
+            st.markdown("<div class='risk-box'><span>🔴 High Risk:</span> "
+                        f"{len(high)} document(s)</div>", unsafe_allow_html=True)
 
-        if st.button("🗑 Clear History"):
-            history[user] = []
-            HISTORY_FILE.write_text(json.dumps(history, indent=2))
-            st.success("✅ History cleared successfully!")
-            st.rerun()
-
+            if st.button("🗑 Clear History"):
+                history[user] = []
+                HISTORY_FILE.write_text(json.dumps(history, indent=2))
+                st.success("✅ History cleared successfully!")
+                st.rerun()
 
 # ------------------ APP ENTRY ------------------
 def main():
