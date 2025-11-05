@@ -1,7 +1,7 @@
 # ============================================================
-# AI Legal Document Analyzer - Streamlit Dashboard
+# AI Legal Document Analyzer - Final Version
 # Developed by Jahnavi Kodavati & Swejan | CSE - AI | SSE Chennai
-# Final Polished Version (Blue Layout + Metrics + Extracted Text)
+# Features: OCR, Metrics, Reports, Risk Analysis, Comparison
 # ============================================================
 
 import streamlit as st
@@ -146,7 +146,7 @@ def sidebar_nav():
         }
         div[role="radiogroup"] > label {
             margin-bottom: 12px !important;
-            padding: 6px 10px !important;
+            padding: 8px 12px !important;
             border-radius: 10px !important;
             background: white !important;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
@@ -172,7 +172,6 @@ def save_history(user, doc_type, risk, filename):
         history = json.loads(HISTORY_FILE.read_text())
     except json.JSONDecodeError:
         history = {}
-
     if user not in history:
         history[user] = []
     entry = {"file": filename, "type": doc_type, "risk": risk}
@@ -239,26 +238,43 @@ def main_dashboard():
                 # -------- KEY CLAUSES --------
                 st.subheader("📑 Key Clauses Found")
                 for clause, info in clauses.items():
-                    found = info["found"]
                     excerpt = info["excerpt"][:250] + "..." if info["excerpt"] else ""
-                    status = "✅ Found" if found else "❌ Missing"
+                    status_text = "✅ Found" if info["found"] else "❌ Missing"
                     st.markdown(
                         f"""
                         <div class='clause-card'>
-                            <b>{clause}</b> — <span style='color:{"#1e3a8a" if found else "#e63946"}; font-weight:600'>{status}</span><br>
+                            <b>{clause}</b> — <span style='font-weight:600;color:#1e3a8a'>{status_text}</span><br>
                             <small>{excerpt}</small>
                         </div>
                         """,
                         unsafe_allow_html=True,
                     )
 
-                # -------- SUMMARY --------
                 st.subheader("🧠 Summary")
                 st.success(summary)
 
-                # -------- EXTRACTED TEXT --------
                 st.subheader("📜 Extracted Text")
                 st.text_area("Full Document Text", text[:4000] + "...", height=250)
+
+    elif choice == "🔍 Compare Documents":
+        st.subheader("🔍 Compare Two Legal Documents")
+        file1 = st.file_uploader("Upload First Document", type=["pdf"], key="file1")
+        file2 = st.file_uploader("Upload Second Document", type=["pdf"], key="file2")
+        if file1 and file2:
+            path1 = DATA_RAW / file1.name
+            path2 = DATA_RAW / file2.name
+            with open(path1, "wb") as f:
+                f.write(file1.getbuffer())
+            with open(path2, "wb") as f:
+                f.write(file2.getbuffer())
+
+            text1 = extract_text_from_pdf(str(path1))
+            text2 = extract_text_from_pdf(str(path2))
+            differences = compare_versions(text1, text2)
+
+            st.markdown("### 📄 Comparison Result")
+            for diff in differences:
+                st.markdown(f"<div class='report-card'>{diff}</div>", unsafe_allow_html=True)
 
     elif choice == "📊 Reports":
         st.subheader("📊 Document Analysis Reports")
