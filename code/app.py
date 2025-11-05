@@ -35,7 +35,7 @@ for f in [USERS_FILE, HISTORY_FILE]:
     if not f.exists():
         f.write_text("{}")
 
-# ------------------ PASSWORD UTILS (Persistent Multi-User Login) ------------------
+# ------------------ PASSWORD UTILS (Persistent One-Time Registration) ------------------
 
 def hash_password(password):
     """Converts password into a SHA-256 hash string."""
@@ -43,54 +43,50 @@ def hash_password(password):
 
 
 def load_users():
-    """Load existing users from users.json. If missing, create it."""
+    """Loads users persistently from users.json file."""
     try:
-        with open(USERS_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            if isinstance(data, dict):
-                return data
-            else:
-                return {}
+        with open(USERS_FILE, "r") as f:
+            return json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         USERS_FILE.write_text("{}")
         return {}
 
 
 def save_users(users):
-    """Save users to users.json file."""
-    with open(USERS_FILE, "w", encoding="utf-8") as f:
+    """Saves users persistently to users.json file."""
+    with open(USERS_FILE, "w") as f:
         json.dump(users, f, indent=2)
 
 
 def verify_user(email, password):
-    """Check if given credentials are valid."""
+    """Verifies user login credentials."""
     users = load_users()
     hashed = hash_password(password)
     return email in users and users[email] == hashed
 
 
 def register_user(email, password):
-    """Register a new user persistently."""
+    """Registers new user (only once)."""
     users = load_users()
     if email in users:
-        return False  # Email already exists
+        return False  # already registered
     users[email] = hash_password(password)
     save_users(users)
     return True
+
 
 # ------------------ OCR FUNCTION ------------------
 def extract_text_with_ocr(pdf_path):
     """Extracts text from scanned PDFs using OCR."""
     text = ""
     try:
-        # convert PDF pages to PIL images
         pages = convert_from_path(pdf_path, dpi=300)
         for page in pages:
             text += pytesseract.image_to_string(page, lang="eng")
     except Exception as e:
-        # report error to the UI but return empty string so caller can handle gracefully
         st.error(f"OCR failed: {e}")
     return text.strip()
+
 
 # ------------------ LOGIN PAGE ------------------
 def login_page():
@@ -111,8 +107,10 @@ def login_page():
         if st.button("Login"):
             if verify_user(email, password):
                 st.session_state["user"] = email
-                st.success("✅ Login successful!")
-                # refresh to dashboard
+                st.success(f"✅ Welcome back, {email}!")
+                # Save last user for auto-login next time
+                with open("last_user.json", "w") as f:
+                    json.dump({"email": email}, f)
                 st.rerun()
             else:
                 st.error("❌ Invalid credentials.")
@@ -121,13 +119,16 @@ def login_page():
         email = st.text_input("Email", key="reg_email")
         password = st.text_input("Password", type="password", key="reg_pass")
         if st.button("Register"):
-            # corrected indentation and logic
             if register_user(email, password):
                 st.success("✅ Account created successfully!")
                 st.session_state["user"] = email
-                st.rerun()  # Automatically logs in and refreshes the dashboard
+                # Save new user as last_user for next launch
+                with open("last_user.json", "w") as f:
+                    json.dump({"email": email}, f)
+                st.rerun()
             else:
                 st.warning("⚠ Email already registered. Please login.")
+
 
 # ------------------ SIDEBAR ------------------
 def sidebar_nav():
@@ -140,13 +141,10 @@ def sidebar_nav():
     st.session_state["language"] = lang
     return choice
 
+
 # ------------------ SAVE HISTORY ------------------
 def save_history(user, doc_type, risk, filename):
-    # ensure history file exists and is valid JSON
-    try:
-        history = json.loads(HISTORY_FILE.read_text())
-    except Exception:
-        history = {}
+    history = json.loads(HISTORY_FILE.read_text())
     if user not in history:
         history[user] = []
     entry = {"file": filename, "type": doc_type, "risk": risk}
@@ -154,26 +152,24 @@ def save_history(user, doc_type, risk, filename):
         history[user].append(entry)
     HISTORY_FILE.write_text(json.dumps(history, indent=2))
 
+
 # ------------------ MAIN DASHBOARD ------------------
 def main_dashboard():
     user = st.session_state["user"]
     choice = sidebar_nav()
 
-    # load styles if available, but don't crash if missing
-    try:
-        with open("styles.css") as css:
-            st.markdown(f"<style>{css.read()}</style>", unsafe_allow_html=True)
-    except Exception:
-        # styles.css missing -> continue with default styling
-        pass
+    with open("styles.css") as css:
+        st.markdown(f"<style>{css.read()}</style>", unsafe_allow_html=True)
 
     st.markdown("<h1 class='title'>AI Legal Document Analyzer</h1>", unsafe_allow_html=True)
-    st.caption(f"Welcome, {user} | Smart Legal Insights in {st.session_state.get('language','English')}")
+    st.caption(f"Welcome, {user} | Smart Legal Insights in {st.session_state.get('language', 'English')}")
 
     # -------- Logout --------
     if choice == "🚪 Logout":
-        if "user" in st.session_state:
-            del st.session_state["user"]
+        del st.session_state["user"]
+        # Remove last user record on logout
+        if os.path.exists("last_user.json"):
+            os.remove("last_user.json")
         st.rerun()
 
     # -------- Analyze Document --------
@@ -182,18 +178,11 @@ def main_dashboard():
         manual_text = st.text_area("📝 Or Paste Document Text Here", height=150)
 
         if uploaded_file or manual_text.strip():
-            uploaded_filename = None
             if uploaded_file:
-                uploaded_filename = uploaded_file.name
                 file_path = DATA_RAW / uploaded_file.name
                 with open(file_path, "wb") as f:
                     f.write(uploaded_file.getbuffer())
-
-                # primary extraction
-                try:
-                    text = extract_text_from_pdf(str(file_path))
-                except Exception:
-                    text = ""
+                text = extract_text_from_pdf(str(file_path))
 
                 # If normal extraction fails, use OCR
                 if not text or len(text) < 20:
@@ -201,7 +190,6 @@ def main_dashboard():
                     text = extract_text_with_ocr(str(file_path))
             else:
                 text = manual_text
-                uploaded_filename = "Manual Text"
 
             if not text or len(text) < 20:
                 st.error("❌ Could not extract readable text. Try uploading a clearer document.")
@@ -213,13 +201,12 @@ def main_dashboard():
                 risk_level, risk_comment = assess_risk(clauses)
                 summary = summarize_text(text, n=4)
 
-                save_history(user, doc_type, risk_level, uploaded_filename if uploaded_filename else "Manual Text")
+                save_history(user, doc_type, risk_level, uploaded_file.name if uploaded_file else "Manual Text")
 
                 word_count = len(text.split())
                 char_count = len(text)
                 sentence_count = text.count(".")
 
-                # metric boxes
                 col1, col2, col3, col4 = st.columns(4)
                 col1.metric("Words", word_count)
                 col2.metric("Characters", char_count)
@@ -263,14 +250,14 @@ def main_dashboard():
                 """, unsafe_allow_html=True)
 
                 for clause, info in clauses.items():
-                    status_icon = "✅" if info.get("found") else "❌"
-                    status_class = "found" if info.get("found") else "missing"
-                    excerpt = (info.get("excerpt") or "")[:200] + "..." if info.get("found") and info.get("excerpt") else ""
+                    status_icon = "✅" if info["found"] else "❌"
+                    status_class = "found" if info["found"] else "missing"
+                    excerpt = info["excerpt"][:200] + "..." if info["found"] and info["excerpt"] else ""
                     st.markdown(
                         f"""
                         <div class="clause-box">
                             <span class="clause-title">{clause}</span>
-                            <span class="clause-status {status_class}">{status_icon} {'Found' if info.get('found') else 'Missing'}</span>
+                            <span class="clause-status {status_class}">{status_icon} {'Found' if info['found'] else 'Missing'}</span>
                             <br>
                             <small>{excerpt}</small>
                         </div>
@@ -285,4 +272,81 @@ def main_dashboard():
     elif choice == "🔍 Compare Documents":
         col1, col2 = st.columns(2)
         file1 = col1.file_uploader("Upload First Document", type=["pdf"], key="cmp1")
-        file2 = col2.file_uploader("Upload Second Document", type=["pdf"], key="cmp2
+        file2 = col2.file_uploader("Upload Second Document", type=["pdf"], key="cmp2")
+        if file1 and file2:
+            p1 = DATA_RAW / file1.name
+            p2 = DATA_RAW / file2.name
+            with open(p1, "wb") as f:
+                f.write(file1.getbuffer())
+            with open(p2, "wb") as f:
+                f.write(file2.getbuffer())
+            t1 = extract_text_from_pdf(str(p1))
+            t2 = extract_text_from_pdf(str(p2))
+            sim = compare_versions(t1, t2)
+            st.metric("Similarity", f"{sim}%")
+            if sim > 80:
+                st.success("✅ Documents are very similar.")
+            elif sim > 50:
+                st.warning("⚠ Moderate differences found.")
+            else:
+                st.error("❌ Significant differences detected.")
+
+    # -------- Reports --------
+    elif choice == "📊 Reports":
+        st.subheader("📊 Document Analysis Reports")
+        history = json.loads(HISTORY_FILE.read_text())
+        user_history = history.get(user, [])
+        if not user_history:
+            st.info("No reports available yet.")
+        else:
+            for item in user_history:
+                st.markdown(f"📄 {item['file']} → Type: {item['type']} | Risk: {item['risk']}")
+
+    # -------- Risk Analysis --------
+    elif choice == "⚠ Risk Analysis":
+        st.subheader("⚠ Risk Level Overview")
+        history = json.loads(HISTORY_FILE.read_text())
+        user_history = history.get(user, [])
+
+        if not user_history:
+            st.info("No analyzed documents yet.")
+        else:
+            low = [d for d in user_history if d["risk"] == "Low"]
+            med = [d for d in user_history if d["risk"] == "Medium"]
+            high = [d for d in user_history if d["risk"] == "High"]
+            st.write(f"🟢 Low Risk: {len(low)} documents")
+            st.write(f"🟡 Medium Risk: {len(med)} documents")
+            st.write(f"🔴 High Risk: {len(high)} documents")
+
+            # Clear History Button in middle
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("🗑 Clear History"):
+                history[user] = []
+                HISTORY_FILE.write_text(json.dumps(history, indent=2))
+                st.success("✅ History cleared successfully!")
+                st.rerun()
+
+
+# ------------------ APP ENTRY ------------------
+def main():
+    st.set_page_config(page_title="AI Legal Document Analyzer", layout="wide")
+
+    # Load last user automatically if available
+    if "user" not in st.session_state:
+        try:
+            with open("last_user.json", "r") as f:
+                saved_user = json.load(f).get("email")
+                if saved_user:
+                    st.session_state["user"] = saved_user
+                    st.info(f"👋 Welcome back, {saved_user}!")
+        except:
+            pass
+
+    if "user" not in st.session_state:
+        login_page()
+    else:
+        main_dashboard()
+
+
+if _name_ == "_main_":
+    main()
