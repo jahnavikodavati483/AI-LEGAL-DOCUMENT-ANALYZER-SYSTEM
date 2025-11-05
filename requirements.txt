@@ -9,3 +9,5 @@ pandas
 matplotlib
 fpdf
 nltk
+python-docx
+pypdfium2
