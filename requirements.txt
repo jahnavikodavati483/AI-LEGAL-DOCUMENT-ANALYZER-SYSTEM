@@ -2,12 +2,9 @@ streamlit
 pdf2image
 pytesseract
 Pillow
-numpy
+fitz
 PyMuPDF
-scikit-learn
+poppler-utils
+numpy
 pandas
-matplotlib
-fpdf
-nltk
-python-docx
-pypdfium2
+scikit-learn
