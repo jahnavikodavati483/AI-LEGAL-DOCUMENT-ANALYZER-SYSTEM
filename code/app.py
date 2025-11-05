@@ -1,7 +1,7 @@
 # ============================================================
 # AI Legal Document Analyzer - Streamlit Dashboard
 # Developed by Jahnavi Kodavati & Swejan | CSE - AI | SSE Chennai
-# Final Version - Persistent Multi-User Login + OCR + Styled Clauses
+# Final Version - Functional Pages + OCR Support + Styled Clauses
 # ============================================================
 
 import streamlit as st
@@ -31,6 +31,7 @@ for path in [DATA_RAW, DATA_REPORTS]:
 
 USERS_FILE = Path("users.json")
 HISTORY_FILE = Path("history.json")
+
 for f in [USERS_FILE, HISTORY_FILE]:
     if not f.exists():
         f.write_text("{}")
@@ -53,9 +54,8 @@ def save_users(users):
 
 def verify_user(email, password):
     users = load_users()
-    if email in users and users[email]["password"] == hash_password(password):
-        return True
-    return False
+    hashed = hash_password(password)
+    return email in users and users[email]["password"] == hashed
 
 def register_user(email, password):
     users = load_users()
@@ -66,24 +66,24 @@ def register_user(email, password):
     return True
 
 def remember_user(email):
-    """Mark user as remembered."""
+    """Remember user for auto-login."""
     users = load_users()
+    for u in users:
+        users[u]["remember"] = False
     if email in users:
-        for u in users:
-            users[u]["remember"] = False
         users[email]["remember"] = True
-        save_users(users)
+    save_users(users)
 
 def get_remembered_user():
-    """Return the user who was last logged in."""
+    """Fetch last remembered user."""
     users = load_users()
     for email, info in users.items():
         if info.get("remember"):
             return email
     return None
 
-def logout_user(email):
-    """Forget the currently remembered user."""
+def forget_user(email):
+    """Forget user when they log out."""
     users = load_users()
     if email in users:
         users[email]["remember"] = False
@@ -173,7 +173,7 @@ def main_dashboard():
 
     # -------- Logout --------
     if choice == "🚪 Logout":
-        logout_user(user)
+        forget_user(user)
         del st.session_state["user"]
         st.success("✅ Logged out successfully!")
         st.rerun()
@@ -182,6 +182,7 @@ def main_dashboard():
     elif choice == "📄 Analyze Document":
         uploaded_file = st.file_uploader("📂 Upload Legal Document (PDF)", type=["pdf"])
         manual_text = st.text_area("📝 Or Paste Document Text Here", height=150)
+
         if uploaded_file or manual_text.strip():
             if uploaded_file:
                 file_path = DATA_RAW / uploaded_file.name
@@ -193,15 +194,25 @@ def main_dashboard():
                     text = extract_text_with_ocr(str(file_path))
             else:
                 text = manual_text
+
             if not text or len(text) < 20:
-                st.error("❌ Could not extract readable text.")
+                st.error("❌ Could not extract readable text. Try uploading a clearer document.")
             else:
                 st.success("✅ Document successfully processed!")
                 doc_type = detect_contract_type(text)
                 clauses = detect_clauses_with_excerpts(text)
                 risk_level, risk_comment = assess_risk(clauses)
                 summary = summarize_text(text, n=4)
+
                 save_history(user, doc_type, risk_level, uploaded_file.name if uploaded_file else "Manual Text")
+
+                col1, col2, col3, col4 = st.columns(4)
+                col1.metric("Words", len(text.split()))
+                col2.metric("Characters", len(text))
+                col3.metric("Sentences", text.count("."))
+                col4.metric("Risk", risk_level)
+
+                st.markdown("---")
                 st.subheader("📘 Document Overview")
                 st.write(f"Detected Type: {doc_type}")
                 st.write(f"Risk Level: {risk_level}")
@@ -215,7 +226,7 @@ def main_dashboard():
         history = json.loads(HISTORY_FILE.read_text())
         user_history = history.get(user, [])
         if not user_history:
-            st.info("No reports yet.")
+            st.info("No reports available yet.")
         else:
             for item in user_history:
                 st.markdown(f"📄 {item['file']} → Type: {item['type']} | Risk: {item['risk']}")
@@ -232,21 +243,17 @@ def main_dashboard():
             med = [d for d in user_history if d["risk"] == "Medium"]
             high = [d for d in user_history if d["risk"] == "High"]
             st.write(f"🟢 Low: {len(low)} | 🟡 Medium: {len(med)} | 🔴 High: {len(high)}")
-            if st.button("🗑️ Clear History"):
-                history[user] = []
-                HISTORY_FILE.write_text(json.dumps(history, indent=2))
-                st.success("✅ History cleared!")
-                st.rerun()
 
 # ------------------ APP ENTRY ------------------
 def main():
     st.set_page_config(page_title="AI Legal Document Analyzer", layout="wide")
 
-    # Auto-load remembered user
-    remembered = get_remembered_user()
-    if "user" not in st.session_state and remembered:
-        st.session_state["user"] = remembered
-        st.info(f"👋 Welcome back, {remembered}!")
+    # Auto-login last remembered user
+    if "user" not in st.session_state:
+        remembered = get_remembered_user()
+        if remembered:
+            st.session_state["user"] = remembered
+            st.info(f"👋 Welcome back, {remembered}!")
 
     if "user" not in st.session_state:
         login_page()
