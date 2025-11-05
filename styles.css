@@ -161,4 +161,106 @@ body {
 [data-testid="stSidebar"] {
     background-color: #eef2ff;
 }
+/* ---------- GLOBAL PAGE STYLES ---------- */
+body {
+    background-color: #f6f8fc;
+    font-family: "Segoe UI", sans-serif;
+}
+
+.title {
+    font-size: 28px;
+    color: #1e3a8a;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+/* ---------- LOGIN CARD ---------- */
+.login-card {
+    text-align: center;
+    padding: 25px;
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    margin-bottom: 25px;
+}
+
+/* ---------- CLAUSE CARDS ---------- */
+.clause-card {
+    background-color: #f0f4ff;
+    padding: 16px 20px;
+    border-radius: 12px;
+    margin-bottom: 14px;
+    border-left: 5px solid #3b82f6;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
+    transition: transform 0.2s ease;
+}
+
+.clause-card:hover {
+    transform: scale(1.02);
+}
+
+/* ---------- REPORT CARDS ---------- */
+.report-card {
+    background: #ffffff;
+    border-left: 6px solid #2563eb;
+    border-radius: 12px;
+    padding: 16px 22px;
+    margin-bottom: 15px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+    transition: all 0.25s ease;
+}
+
+.report-card:hover {
+    background: #f1f5ff;
+    transform: scale(1.01);
+}
+
+/* ---------- RISK LEVEL BOXES ---------- */
+.risk-box {
+    background: #f0f4ff;
+    border-left: 6px solid #2563eb;
+    border-radius: 12px;
+    padding: 14px 20px;
+    margin-bottom: 15px;
+    font-size: 16px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.04);
+}
+
+.risk-box span {
+    font-weight: 600;
+    color: #1e3a8a;
+}
+
+/* ---------- SIDEBAR ---------- */
+[data-testid="stSidebar"] {
+    background-color: #e3e8ff;
+}
+
+.sidebar-title {
+    font-weight: 700;
+    color: #1e3a8a;
+}
+
+/* ---------- BUTTON STYLING ---------- */
+button {
+    background: #3b82f6 !important;
+    color: white !important;
+    border-radius: 8px !important;
+    font-weight: 500 !important;
+    border: none !important;
+}
+
+button:hover {
+    background: #2563eb !important;
+}
+
+/* ---------- SCROLLBAR ---------- */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #a5b4fc;
+    border-radius: 5px;
+}
 
