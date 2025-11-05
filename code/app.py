@@ -21,7 +21,7 @@ import pytesseract
 from PIL import Image
 
 # ------------------ PATH SETUP ------------------
-BASE_DIR = Path(_file_).resolve().parent  # /code
+BASE_DIR = Path(__file__).resolve().parent  # /code
 REPO_ROOT = BASE_DIR.parent                 # project root
 
 DATA_RAW = REPO_ROOT / "data" / "raw documents"
