@@ -42,28 +42,7 @@ for f in [USERS_FILE, HISTORY_FILE]:
 def hash_password(password):
     """Converts password into a SHA-256 hash string."""
     return hashlib.sha256(password.encode()).hexdigest()
-
-
-def load_users():
-    """Load existing users from users.json. If missing, create it."""
-    try:
-        with open(USERS_FILE, "r") as f:
-            data = json.load(f)
-            if isinstance(data, dict):
-                return data
-            else:
-                return {}
-    except (FileNotFoundError, json.JSONDecodeError):
-        USERS_FILE.write_text("{}")
-        return {}
-
-
-def save_users(users):
-    """Save users to users.json file."""
-    with open(USERS_FILE, "w") as f:
-        json.dump(users, f, indent=2)
-
-
+    
 def verify_user(email, password):
     """Check if given credentials are valid."""
     users = load_users()
@@ -77,7 +56,7 @@ def register_user(email, password):
     if email in users:
         return False  # Email already exists
     users[email] = hash_password(password)
-    save_users(users)
+    USERS_FILE.write_text(json.dumps(users))
     return True
 # ------------------ OCR FUNCTION ------------------
 def extract_text_with_ocr(pdf_path):
