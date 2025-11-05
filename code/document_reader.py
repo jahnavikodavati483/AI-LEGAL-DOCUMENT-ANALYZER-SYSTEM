@@ -5,19 +5,21 @@ import re
 
 # ------------------ PDF Text Extraction ------------------
 def extract_text_from_pdf(pdf_path):
+    """Extract text from PDF using PyMuPDF (fitz)."""
     try:
         text = ""
         with fitz.open(pdf_path) as doc:
             for page in doc:
-                text += page.get_text()
+                text += page.get_text("text")
         return text.strip()
-    except Exception:
+    except Exception as e:
+        print(f"PDF extraction failed: {e}")
         return ""
 
 # ------------------ Text Summarization ------------------
 def summarize_text(text, n=4):
-    sentences = text.split(".")
-    return ". ".join(sentences[:n]) + "."
+    sentences = re.split(r"(?<=[.!?]) +", text)
+    return " ".join(sentences[:n]) if sentences else ""
 
 # ------------------ Contract Type Detection ------------------
 def detect_contract_type(text):
@@ -60,7 +62,7 @@ def detect_clauses_with_excerpts(text):
 def assess_risk(clauses):
     total = len(clauses)
     found = sum(1 for c in clauses.values() if c["found"])
-    ratio = found / total
+    ratio = found / total if total else 0
 
     if ratio >= 0.75:
         return "Low", "Most key clauses are present. Document seems comprehensive."
