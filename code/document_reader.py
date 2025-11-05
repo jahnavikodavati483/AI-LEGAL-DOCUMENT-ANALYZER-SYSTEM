@@ -56,7 +56,7 @@ class DocumentReader:
         return text
 
 
-if _name_ == "_main_":
+if __name__ == "_main_":
     input_folder = "../data/raw documents"
     output_folder = "../data/extracted text"
 
