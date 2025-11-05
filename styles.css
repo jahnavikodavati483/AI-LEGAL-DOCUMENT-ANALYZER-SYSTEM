@@ -83,3 +83,33 @@ div[data-testid="stMetricValue"] {
     color: #919dee;
     font-weight: 1000;
 }
+/* ==== Metric Boxes Styling ==== */
+div[data-testid="stMetric"] {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 15px;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+    margin: 10px;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+div[data-testid="stMetric"]:hover {
+    transform: scale(1.02);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Metric Label */
+div[data-testid="stMetric"] label {
+    font-size: 15px;
+    color: #333333;
+    font-weight: 600;
+}
+
+/* Metric Value */
+div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
+    font-size: 32px;
+    color: #5a5ef5;
+    font-weight: 800;
+}
+
