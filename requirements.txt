@@ -1,0 +1,11 @@
+streamlit
+pdf2image
+pytesseract
+Pillow
+numpy
+PyMuPDF
+scikit-learn
+pandas
+matplotlib
+fpdf
+nltk
