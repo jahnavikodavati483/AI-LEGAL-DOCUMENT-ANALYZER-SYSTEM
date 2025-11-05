@@ -254,21 +254,29 @@ def main_dashboard():
                 )
 
     elif choice == "⚠ Risk Analysis":
-        st.subheader("⚠ Risk Level Overview")
-        history = json.loads(HISTORY_FILE.read_text())
-        user_history = history.get(user, [])
-        if not user_history:
-            st.info("No analyzed documents yet.")
-        else:
-            low = [d for d in user_history if d["risk"] == "Low"]
-            med = [d for d in user_history if d["risk"] == "Medium"]
-            high = [d for d in user_history if d["risk"] == "High"]
-            st.write(f"🟢 Low: {len(low)} | 🟡 Medium: {len(med)} | 🔴 High: {len(high)}")
-            if st.button("🗑 Clear History"):
-                history[user] = []
-                HISTORY_FILE.write_text(json.dumps(history, indent=2))
-                st.success("✅ History cleared successfully!")
-                st.rerun()
+    st.subheader("⚠ Risk Level Overview")
+    history = json.loads(HISTORY_FILE.read_text())
+    user_history = history.get(user, [])
+    if not user_history:
+        st.info("No analyzed documents yet.")
+    else:
+        low = [d for d in user_history if d["risk"] == "Low"]
+        med = [d for d in user_history if d["risk"] == "Medium"]
+        high = [d for d in user_history if d["risk"] == "High"]
+
+        st.markdown("<div class='risk-box'><span>🟢 Low Risk:</span> "
+                    f"{len(low)} document(s)</div>", unsafe_allow_html=True)
+        st.markdown("<div class='risk-box'><span>🟡 Medium Risk:</span> "
+                    f"{len(med)} document(s)</div>", unsafe_allow_html=True)
+        st.markdown("<div class='risk-box'><span>🔴 High Risk:</span> "
+                    f"{len(high)} document(s)</div>", unsafe_allow_html=True)
+
+        if st.button("🗑 Clear History"):
+            history[user] = []
+            HISTORY_FILE.write_text(json.dumps(history, indent=2))
+            st.success("✅ History cleared successfully!")
+            st.rerun()
+
 
 # ------------------ APP ENTRY ------------------
 def main():
