@@ -1,7 +1,7 @@
 # ============================================================
 # AI Legal Document Analyzer - Streamlit Dashboard
 # Developed by Jahnavi Kodavati & Swejan | CSE - AI | SSE Chennai
-# Final Version with Sidebar Spacing and Professional Styling
+# Final Polished Version (Blue Layout + Metrics + Extracted Text)
 # ============================================================
 
 import streamlit as st
@@ -44,8 +44,7 @@ def hash_password(password):
 def load_users():
     try:
         with open(USERS_FILE, "r") as f:
-            data = json.load(f)
-            return data if isinstance(data, dict) else {}
+            return json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         USERS_FILE.write_text("{}")
         return {}
@@ -224,35 +223,42 @@ def main_dashboard():
                 summary = summarize_text(text, n=4)
                 save_history(user, doc_type, risk_level, uploaded_file.name if uploaded_file else "Manual Text")
 
+                # -------- METRICS --------
                 col1, col2, col3, col4 = st.columns(4)
                 col1.metric("Words", len(text.split()))
                 col2.metric("Characters", len(text))
                 col3.metric("Sentences", text.count("."))
                 col4.metric("Risk", risk_level)
 
+                # -------- DOCUMENT OVERVIEW --------
                 st.markdown("---")
                 st.subheader("📘 Document Overview")
-                st.write(f"Detected Type: {doc_type}")
+                st.write(f"Detected Type: **{doc_type}**")
                 st.info(risk_comment)
-                st.subheader("🧠 Summary")
-                st.success(summary)
 
-                st.subheader("📑 Key Clauses")
+                # -------- KEY CLAUSES --------
+                st.subheader("📑 Key Clauses Found")
                 for clause, info in clauses.items():
                     found = info["found"]
                     excerpt = info["excerpt"][:250] + "..." if info["excerpt"] else ""
-                    color = "green" if found else "red"
                     status = "✅ Found" if found else "❌ Missing"
                     st.markdown(
                         f"""
-                        <div class='clause-card' style='border-left:5px solid {color};'>
-                            <b>{clause}</b> — 
-                            <span style='color:{color};font-weight:bold'>{status}</span><br>
+                        <div class='clause-card'>
+                            <b>{clause}</b> — <span style='color:{"#1e3a8a" if found else "#e63946"}; font-weight:600'>{status}</span><br>
                             <small>{excerpt}</small>
                         </div>
                         """,
                         unsafe_allow_html=True,
                     )
+
+                # -------- SUMMARY --------
+                st.subheader("🧠 Summary")
+                st.success(summary)
+
+                # -------- EXTRACTED TEXT --------
+                st.subheader("📜 Extracted Text")
+                st.text_area("Full Document Text", text[:4000] + "...", height=250)
 
     elif choice == "📊 Reports":
         st.subheader("📊 Document Analysis Reports")
