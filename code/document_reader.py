@@ -7,7 +7,7 @@ import pytesseract
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 class DocumentReader:
-    def __init__(self, input_folder, output_folder):
+    def _init_(self, input_folder, output_folder):
         self.input_folder = input_folder
         self.output_folder = output_folder
 
@@ -51,12 +51,12 @@ class DocumentReader:
         text = ""
         images = convert_from_path(file_path, 300)
         for i, img in enumerate(images):
-            print(f"🖼️ OCR processing page {i + 1}...")
+            print(f"🖼 OCR processing page {i + 1}...")
             text += pytesseract.image_to_string(img)
         return text
 
 
-if __name__ == "__main__":
+if __name__ == "_main_":
     input_folder = "../data/raw documents"
     output_folder = "../data/extracted text"
 
