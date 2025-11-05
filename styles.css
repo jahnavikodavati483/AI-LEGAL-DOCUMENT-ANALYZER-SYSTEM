@@ -112,4 +112,53 @@ div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
     color: #5a5ef5;
     font-weight: 800;
 }
+/* ----------- Global Styles ----------- */
+body {
+    background-color: #f7f9fc;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.title {
+    font-size: 30px;
+    color: #222;
+    font-weight: 700;
+    margin-bottom: 15px;
+}
+
+/* ----------- Login Card ----------- */
+.login-card {
+    text-align: center;
+    padding: 25px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+}
+
+/* ----------- Clause Cards ----------- */
+.clause-card {
+    background-color: #f9f9ff;
+    padding: 12px 15px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+}
+
+/* ----------- Report Cards ----------- */
+.report-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 15px 20px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    transition: transform 0.2s ease;
+}
+.report-card:hover {
+    transform: scale(1.02);
+}
+
+/* ----------- Sidebar ----------- */
+[data-testid="stSidebar"] {
+    background-color: #eef2ff;
+}
 
