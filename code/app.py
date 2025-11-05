@@ -31,11 +31,13 @@ for path in [DATA_RAW, DATA_REPORTS]:
 
 USERS_FILE = Path("users.json")
 HISTORY_FILE = Path("history.json")
+
+USERS_FILE = Path("users.json")
+HISTORY_FILE = Path("history.json")
 for f in [USERS_FILE, HISTORY_FILE]:
     if not f.exists():
         f.write_text("{}")
-
-# ------------------ PASSWORD UTILS (Persistent One-Time Registration) ------------------
+# ------------------ PASSWORD UTILS (Persistent Multi-User Login) ------------------
 
 def hash_password(password):
     """Converts password into a SHA-256 hash string."""
@@ -43,38 +45,40 @@ def hash_password(password):
 
 
 def load_users():
-    """Loads users persistently from users.json file."""
+    """Load existing users from users.json. If missing, create it."""
     try:
         with open(USERS_FILE, "r") as f:
-            return json.load(f)
+            data = json.load(f)
+            if isinstance(data, dict):
+                return data
+            else:
+                return {}
     except (FileNotFoundError, json.JSONDecodeError):
         USERS_FILE.write_text("{}")
         return {}
 
 
 def save_users(users):
-    """Saves users persistently to users.json file."""
+    """Save users to users.json file."""
     with open(USERS_FILE, "w") as f:
         json.dump(users, f, indent=2)
 
 
 def verify_user(email, password):
-    """Verifies user login credentials."""
+    """Check if given credentials are valid."""
     users = load_users()
     hashed = hash_password(password)
     return email in users and users[email] == hashed
 
 
 def register_user(email, password):
-    """Registers new user (only once)."""
+    """Register a new user persistently."""
     users = load_users()
     if email in users:
-        return False  # already registered
+        return False  # Email already exists
     users[email] = hash_password(password)
     save_users(users)
     return True
-
-
 # ------------------ OCR FUNCTION ------------------
 def extract_text_with_ocr(pdf_path):
     """Extracts text from scanned PDFs using OCR."""
@@ -86,7 +90,6 @@ def extract_text_with_ocr(pdf_path):
     except Exception as e:
         st.error(f"OCR failed: {e}")
     return text.strip()
-
 
 # ------------------ LOGIN PAGE ------------------
 def login_page():
@@ -107,10 +110,8 @@ def login_page():
         if st.button("Login"):
             if verify_user(email, password):
                 st.session_state["user"] = email
-                st.success(f"✅ Welcome back, {email}!")
-                # Save last user for auto-login next time
-                with open("last_user.json", "w") as f:
-                    json.dump({"email": email}, f)
+                st.success("✅ Login successful!")
+                st.query_params
                 st.rerun()
             else:
                 st.error("❌ Invalid credentials.")
@@ -119,16 +120,12 @@ def login_page():
         email = st.text_input("Email", key="reg_email")
         password = st.text_input("Password", type="password", key="reg_pass")
         if st.button("Register"):
-            if register_user(email, password):
-                st.success("✅ Account created successfully!")
-                st.session_state["user"] = email
-                # Save new user as last_user for next launch
-                with open("last_user.json", "w") as f:
-                    json.dump({"email": email}, f)
-                st.rerun()
-            else:
-                st.warning("⚠ Email already registered. Please login.")
-
+    if register_user(email, password):
+        st.success("✅ Account created successfully!")
+        st.session_state["user"] = email
+        st.rerun()  # Automatically logs in and refreshes the dashboard
+    else:
+        st.warning("⚠ Email already registered. Please login.")
 
 # ------------------ SIDEBAR ------------------
 def sidebar_nav():
@@ -141,7 +138,6 @@ def sidebar_nav():
     st.session_state["language"] = lang
     return choice
 
-
 # ------------------ SAVE HISTORY ------------------
 def save_history(user, doc_type, risk, filename):
     history = json.loads(HISTORY_FILE.read_text())
@@ -152,7 +148,6 @@ def save_history(user, doc_type, risk, filename):
         history[user].append(entry)
     HISTORY_FILE.write_text(json.dumps(history, indent=2))
 
-
 # ------------------ MAIN DASHBOARD ------------------
 def main_dashboard():
     user = st.session_state["user"]
@@ -162,14 +157,11 @@ def main_dashboard():
         st.markdown(f"<style>{css.read()}</style>", unsafe_allow_html=True)
 
     st.markdown("<h1 class='title'>AI Legal Document Analyzer</h1>", unsafe_allow_html=True)
-    st.caption(f"Welcome, {user} | Smart Legal Insights in {st.session_state.get('language', 'English')}")
+    st.caption(f"Welcome, {user} | Smart Legal Insights in {st.session_state['language']}")
 
     # -------- Logout --------
     if choice == "🚪 Logout":
         del st.session_state["user"]
-        # Remove last user record on logout
-        if os.path.exists("last_user.json"):
-            os.remove("last_user.json")
         st.rerun()
 
     # -------- Analyze Document --------
@@ -326,27 +318,13 @@ def main_dashboard():
                 st.success("✅ History cleared successfully!")
                 st.rerun()
 
-
 # ------------------ APP ENTRY ------------------
 def main():
     st.set_page_config(page_title="AI Legal Document Analyzer", layout="wide")
-
-    # Load last user automatically if available
-    if "user" not in st.session_state:
-        try:
-            with open("last_user.json", "r") as f:
-                saved_user = json.load(f).get("email")
-                if saved_user:
-                    st.session_state["user"] = saved_user
-                    st.info(f"👋 Welcome back, {saved_user}!")
-        except:
-            pass
-
     if "user" not in st.session_state:
         login_page()
     else:
         main_dashboard()
 
-
-if __name__ == "_main_":
+if _name_ == "_main_":
     main()
