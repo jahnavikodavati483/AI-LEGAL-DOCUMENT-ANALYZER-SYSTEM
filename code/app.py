@@ -239,12 +239,16 @@ def main_dashboard():
                 st.subheader("📑 Key Clauses Found")
                 for clause, info in clauses.items():
                     excerpt = info["excerpt"][:250] + "..." if info["excerpt"] else ""
-                    status_text = "✅ Found" if info["found"] else "❌ Missing"
+                    status_icon = "✅" if info["found"] else "❌"
+                    status_text = "Found" if info["found"] else "Missing"
                     st.markdown(
                         f"""
-                        <div class='clause-card'>
-                            <b>{clause}</b> — <span style='font-weight:600;color:#1e3a8a'>{status_text}</span><br>
-                            <small>{excerpt}</small>
+                        <div class='clause-card' style='position:relative;'>
+                            <b>{clause}</b>
+                            <span style='position:absolute; right:15px; top:15px; font-weight:600; color:#1e3a8a;'>
+                                {status_icon} {status_text}
+                            </span>
+                            <br><small>{excerpt}</small>
                         </div>
                         """,
                         unsafe_allow_html=True,
@@ -254,7 +258,7 @@ def main_dashboard():
                 st.success(summary)
 
                 st.subheader("📜 Extracted Text")
-                st.text_area("Full Document Text", text[:4000] + "...", height=250)
+                st.text_area("Full Document Text", text[:10000] + "...", height=250)
 
     elif choice == "🔍 Compare Documents":
         st.subheader("🔍 Compare Two Legal Documents")
