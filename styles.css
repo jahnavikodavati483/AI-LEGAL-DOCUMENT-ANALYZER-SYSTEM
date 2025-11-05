@@ -1,23 +1,34 @@
-/* ---------- HIDE STREAMLIT DEFAULT TOOLBAR ---------- */
+/* =========================================================
+   AI LEGAL DOCUMENT ANALYZER - STYLE SHEET
+   Designed for Streamlit App by Jahnavi & Swejan
+   ========================================================= */
+
+/* ----- HIDE STREAMLIT DEFAULT HEADER & FOOTER ----- */
 #MainMenu, header, footer {
     visibility: hidden !important;
     height: 0 !important;
 }
 
-/* ---------- GLOBAL PAGE STYLES ---------- */
+/* ----- GLOBAL PAGE LAYOUT ----- */
 body {
     background-color: #f6f8fc;
     font-family: "Segoe UI", sans-serif;
 }
 
+/* ----- TITLES & HEADINGS ----- */
 .title {
     font-size: 28px;
     color: #1e3a8a;
     font-weight: 700;
-    margin-bottom: 12px;
+    margin-bottom: 15px;
 }
 
-/* ---------- LOGIN CARD ---------- */
+h2, h3, h4 {
+    color: #1e3a8a !important;
+    font-weight: 600 !important;
+}
+
+/* ----- LOGIN CARD ----- */
 .login-card {
     text-align: center;
     padding: 25px;
@@ -27,7 +38,64 @@ body {
     margin-bottom: 25px;
 }
 
-/* ---------- CLAUSE CARDS (Blue Theme) ---------- */
+.login-card h2 {
+    color: #1e3a8a;
+    margin-bottom: 10px;
+}
+
+/* ----- SIDEBAR ----- */
+[data-testid="stSidebar"] {
+    background-color: #e3e8ff !important;
+}
+
+.sidebar-title {
+    font-weight: 700;
+    color: #1e3a8a;
+    margin-bottom: 18px;
+}
+
+div[role="radiogroup"] > label {
+    margin-bottom: 12px !important;
+    padding: 8px 12px !important;
+    border-radius: 10px !important;
+    background: white !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+    transition: background 0.3s ease;
+}
+
+div[role="radiogroup"] > label:hover {
+    background: #dbeafe !important;
+}
+
+/* ----- METRIC BOXES ----- */
+[data-testid="stMetric"] {
+    background: #f1f5ff;
+    border-radius: 14px;
+    padding: 18px 25px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    margin-bottom: 15px;
+    text-align: center !important;
+}
+
+[data-testid="stMetric"] > div {
+    justify-content: center !important;
+}
+
+[data-testid="stMetricLabel"] {
+    font-size: 15px !important;
+    color: #1e3a8a !important;
+    font-weight: 600 !important;
+}
+
+[data-testid="stMetricValue"] {
+    font-size: 26px !important;
+    color: #3b82f6 !important;
+    font-weight: 700 !important;
+}
+
+/* ----- CLAUSE BOXES ----- */
 .clause-card {
     background-color: #eef2ff;
     padding: 16px 20px;
@@ -51,7 +119,7 @@ body {
     font-size: 14px;
 }
 
-/* ---------- REPORT CARDS ---------- */
+/* ----- REPORT CARDS ----- */
 .report-card {
     background: #ffffff;
     border-left: 6px solid #2563eb;
@@ -67,7 +135,7 @@ body {
     transform: scale(1.01);
 }
 
-/* ---------- RISK LEVEL BOXES ---------- */
+/* ----- RISK ANALYSIS BOXES ----- */
 .risk-box {
     background: #eef2ff;
     border-left: 6px solid #3b82f6;
@@ -83,28 +151,7 @@ body {
     color: #1e3a8a;
 }
 
-/* ---------- SIDEBAR ---------- */
-[data-testid="stSidebar"] {
-    background-color: #e3e8ff;
-}
-
-.sidebar-title {
-    font-weight: 700;
-    color: #1e3a8a;
-    margin-bottom: 18px;
-}
-
-div[role="radiogroup"] > label {
-    margin-bottom: 12px !important;
-    padding: 6px 10px !important;
-    border-radius: 10px !important;
-    background: white !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    display: flex;
-    align-items: center;
-}
-
-/* ---------- BUTTON STYLING ---------- */
+/* ----- BUTTONS ----- */
 button {
     background: #3b82f6 !important;
     color: white !important;
@@ -117,7 +164,7 @@ button:hover {
     background: #2563eb !important;
 }
 
-/* ---------- SCROLLBAR ---------- */
+/* ----- SCROLLBAR ----- */
 ::-webkit-scrollbar {
     width: 10px;
 }
@@ -125,4 +172,23 @@ button:hover {
 ::-webkit-scrollbar-thumb {
     background-color: #a5b4fc;
     border-radius: 5px;
+}
+
+/* ----- TEXT AREA ----- */
+textarea {
+    border-radius: 10px !important;
+    border: 1px solid #d1d5db !important;
+    background: #fafbff !important;
+}
+
+/* ----- INFO / SUCCESS / WARNING BOXES ----- */
+.stAlert {
+    border-radius: 10px !important;
+    padding: 15px !important;
+}
+
+/* ----- CAPTIONS ----- */
+caption, .stCaption {
+    color: #1e3a8a !important;
+    font-weight: 500 !important;
 }
