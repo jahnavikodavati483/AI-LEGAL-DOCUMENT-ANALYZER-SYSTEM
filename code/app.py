@@ -22,7 +22,7 @@ import pytesseract
 from PIL import Image
 
 # ------------------ PATH SETUP ------------------
-BASE_DIR = Path(_file_).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent
 DATA_RAW = BASE_DIR.parent / "data" / "raw documents"
 DATA_REPORTS = BASE_DIR.parent / "data" / "reports"
 
