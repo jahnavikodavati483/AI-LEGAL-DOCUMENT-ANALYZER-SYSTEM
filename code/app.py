@@ -1,5 +1,5 @@
 # ============================================================
-# AI Legal Document Analyzer - Final Version (Stable + Owner + Per-device Login)
+# AI Legal Document Analyzer - Final Cloud Version (Stable)
 # Developed by Jahnavi Kodavati & Swejan | CSE - AI | SSE Chennai
 # Features: OCR, Metrics, Reports, Risk Analysis, Comparison
 # ============================================================
@@ -145,8 +145,7 @@ def login_page():
         if st.button("Login"):
             if verify_user(email, password):
                 users = load_users()
-                session_id = str(uuid.uuid4())  # unique per device
-                st.session_state["user"] = {"email": email, "role": users[email]["role"], "session": session_id}
+                st.session_state["user"] = {"email": email, "role": users[email]["role"]}
                 remember_user(email)
                 log_activity(email, "Logged in")
                 st.success(f"✅ Welcome back, {email}!")
@@ -159,11 +158,7 @@ def login_page():
         password = st.text_input("Password", type="password", key="reg_pass")
         if st.button("Register"):
             if register_user(email, password):
-                st.success("✅ Account created successfully!")
-                st.session_state["user"] = {"email": email, "role": "user", "session": str(uuid.uuid4())}
-                remember_user(email)
-                log_activity(email, "Registered new account")
-                st.rerun()
+                st.success("✅ Account created successfully! Please login.")
             else:
                 st.warning("⚠ Email already registered. Please login.")
 
@@ -199,7 +194,6 @@ def sidebar_nav(role):
     if role == "owner":
         menu.append("👁️ User Activity")
     menu.append("🚪 Logout")
-
     choice = st.sidebar.radio("Navigate", menu, label_visibility="collapsed")
     st.sidebar.markdown("---")
     lang = st.sidebar.selectbox("🌐 Language", ["English", "Hindi", "Tamil", "Telugu"])
@@ -301,24 +295,6 @@ def main_dashboard():
                 st.subheader("📜 Extracted Text")
                 st.text_area("Full Document Text", text[:10000] + "...", height=250)
 
-    elif choice == "🔍 Compare Documents":
-        st.subheader("🔍 Compare Two Legal Documents")
-        file1 = st.file_uploader("Upload First Document", type=["pdf"], key="file1")
-        file2 = st.file_uploader("Upload Second Document", type=["pdf"], key="file2")
-        if file1 and file2:
-            path1 = DATA_RAW / file1.name
-            path2 = DATA_RAW / file2.name
-            with open(path1, "wb") as f:
-                f.write(file1.getbuffer())
-            with open(path2, "wb") as f:
-                f.write(file2.getbuffer())
-            text1 = extract_text_from_pdf(str(path1))
-            text2 = extract_text_from_pdf(str(path2))
-            differences = compare_versions(text1, text2)
-            st.markdown("### 📄 Comparison Result")
-            for diff in differences:
-                st.markdown(f"<div class='report-card'>{diff}</div>", unsafe_allow_html=True)
-
     elif choice == "📊 Reports":
         st.subheader("📊 Document Analysis Reports")
         history = json.loads(HISTORY_FILE.read_text())
@@ -344,21 +320,28 @@ def main_dashboard():
             low = [d for d in user_history if d["risk"] == "Low"]
             med = [d for d in user_history if d["risk"] == "Medium"]
             high = [d for d in user_history if d["risk"] == "High"]
-            st.markdown(f"🟢 Low Risk: {len(low)} | 🟡 Medium Risk: {len(med)} | 🔴 High Risk: {len(high)}")
+
+            st.markdown("<div style='background:#e0e7ff;padding:10px;border-radius:10px;margin-bottom:8px;'>🟢 Low Risk: "
+                        f"{len(low)} document(s)</div>", unsafe_allow_html=True)
+            st.markdown("<div style='background:#e0e7ff;padding:10px;border-radius:10px;margin-bottom:8px;'>🟡 Medium Risk: "
+                        f"{len(med)} document(s)</div>", unsafe_allow_html=True)
+            st.markdown("<div style='background:#e0e7ff;padding:10px;border-radius:10px;margin-bottom:8px;'>🔴 High Risk: "
+                        f"{len(high)} document(s)</div>", unsafe_allow_html=True)
+
+            if st.button("🗑 Clear History"):
+                history[user] = []
+                HISTORY_FILE.write_text(json.dumps(history, indent=2))
+                log_activity(user, "Cleared history")
+                st.success("✅ History cleared successfully!")
+                st.rerun()
 
 # ------------------ APP ENTRY ------------------
 def main():
     st.set_page_config(page_title="AI Legal Document Analyzer", layout="wide")
-    if "session_id" not in st.session_state:
-        st.session_state["session_id"] = str(uuid.uuid4())
-    if "user" not in st.session_state:
-        remembered = get_remembered_user()
-        users = load_users()
-        if remembered and remembered in users:
-            user_data = users[remembered]
-            # Handle both dict and legacy string user entries
-            role = user_data["role"] if isinstance(user_data, dict) else "user"
-            st.session_state["user"] = {"email": remembered, "role": role}
+
+    # Always force new visitors to login (auto logout others)
+    forget_user()
+
     if "user" not in st.session_state:
         login_page()
     else:
