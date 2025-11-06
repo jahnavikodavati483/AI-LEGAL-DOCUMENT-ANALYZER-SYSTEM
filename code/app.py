@@ -1,8 +1,7 @@
 # ============================================================
-# AI Legal Document Analyzer - Final Version
+# AI Legal Document Analyzer - Final Version (Stable + Owner + Per-device Login)
 # Developed by Jahnavi Kodavati & Swejan | CSE - AI | SSE Chennai
 # Features: OCR, Metrics, Reports, Risk Analysis, Comparison
-# Updates: Per-device login isolation + Owner activity log
 # ============================================================
 
 import streamlit as st
@@ -46,21 +45,36 @@ for f in [USERS_FILE, HISTORY_FILE, LAST_USER_FILE]:
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
+def save_users(users):
+    with open(USERS_FILE, "w") as f:
+        json.dump(users, f, indent=2)
+
 def load_users():
     try:
         with open(USERS_FILE, "r") as f:
             users = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         users = {}
-    # ensure owner account exists
-    if "jahnavi@example.com" not in users:
-        users["jahnavi@example.com"] = {"password": hash_password("admin123"), "role": "owner"}
-        save_users(users)
-    return users
 
-def save_users(users):
-    with open(USERS_FILE, "w") as f:
-        json.dump(users, f, indent=2)
+    # ✅ Auto-upgrade old users (plain strings → dict)
+    upgraded = False
+    for email, data in list(users.items()):
+        if isinstance(data, str):
+            users[email] = {"password": data, "role": "user"}
+            upgraded = True
+
+    # ✅ Ensure owner account exists
+    if "jahnavi@example.com" not in users:
+        users["jahnavi@example.com"] = {
+            "password": hash_password("admin123"),
+            "role": "owner"
+        }
+        upgraded = True
+
+    if upgraded:
+        save_users(users)
+
+    return users
 
 def verify_user(email, password):
     users = load_users()
@@ -341,7 +355,10 @@ def main():
         remembered = get_remembered_user()
         users = load_users()
         if remembered and remembered in users:
-            st.session_state["user"] = {"email": remembered, "role": users[remembered]["role"]}
+            user_data = users[remembered]
+            # Handle both dict and legacy string user entries
+            role = user_data["role"] if isinstance(user_data, dict) else "user"
+            st.session_state["user"] = {"email": remembered, "role": role}
     if "user" not in st.session_state:
         login_page()
     else:
