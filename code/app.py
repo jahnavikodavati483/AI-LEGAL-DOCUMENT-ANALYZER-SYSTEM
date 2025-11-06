@@ -236,8 +236,6 @@ def main_dashboard():
                 st.info(risk_comment)
 
                 st.subheader("📑 Key Clauses Found")
-
-                # BLUE CARD STYLE FOR BOTH FOUND & MISSING
                 for clause, info in clauses.items():
                     excerpt = info["excerpt"][:250] + "..." if info["excerpt"] else ""
                     status_icon = "✅" if info["found"] else "❌"
@@ -269,7 +267,7 @@ def main_dashboard():
             path2 = DATA_RAW / file2.name
             with open(path1, "wb") as f:
                 f.write(file1.getbuffer())
-            with open(path2, "wb") as f:
+            with open(path2, "wb"):
                 f.write(file2.getbuffer())
 
             text1 = extract_text_from_pdf(str(path1))
@@ -327,14 +325,18 @@ def main_dashboard():
                 st.success("✅ History cleared successfully!")
                 st.rerun()
 
-# ------------------ APP ENTRY ------------------
+# ------------------ SELF-CHECK & APP ENTRY ------------------
 def main():
     st.set_page_config(page_title="AI Legal Document Analyzer", layout="wide")
 
-    if "user" not in st.session_state:
-        login_page()
-    else:
-        main_dashboard()
+    try:
+        if "user" not in st.session_state:
+            login_page()
+        else:
+            main_dashboard()
+    except Exception as e:
+        st.error("⚠️ App failed to load correctly. Please refresh or check logs.")
+        st.code(str(e))
 
-if __name__ == "_main_":
+if __name__ == "__main__":
     main()
