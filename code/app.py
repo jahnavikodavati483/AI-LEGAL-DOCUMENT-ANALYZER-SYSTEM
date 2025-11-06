@@ -1,11 +1,10 @@
 # ============================================================
-# AI Legal Document Analyzer - Final Blue Card Version
+# AI Legal Document Analyzer - Final 3D Blue Theme + Hover + Fixes
 # Developed by Jahnavi Kodavati & Swejan | CSE - AI | SSE Chennai
 # ============================================================
 
 import streamlit as st
 import json
-import os
 from pathlib import Path
 import hashlib
 from pdf2image import convert_from_path
@@ -24,13 +23,11 @@ from document_reader import (
 BASE_DIR = Path(__file__).resolve().parent
 DATA_RAW = BASE_DIR.parent / "data" / "raw documents"
 DATA_REPORTS = BASE_DIR.parent / "data" / "reports"
-
 for path in [DATA_RAW, DATA_REPORTS]:
     path.mkdir(parents=True, exist_ok=True)
 
 USERS_FILE = BASE_DIR / "users.json"
 HISTORY_FILE = BASE_DIR / "history.json"
-
 for f in [USERS_FILE, HISTORY_FILE]:
     if not f.exists():
         f.write_text("{}")
@@ -56,8 +53,7 @@ def save_users(users):
 
 def verify_user(email, password):
     users = load_users()
-    hashed = hash_password(password)
-    return email in users and users[email]["password"] == hashed
+    return email in users and users[email]["password"] == hash_password(password)
 
 def register_user(email, password):
     users = load_users()
@@ -173,8 +169,44 @@ def save_history(user, doc_type, risk, filename):
         history[user].append(entry)
     HISTORY_FILE.write_text(json.dumps(history, indent=2))
 
+# ------------------ STYLING ------------------
+def inject_style():
+    st.markdown("""
+        <style>
+        .blue-card {
+            background:#eef2ff;
+            padding:16px;
+            border-radius:10px;
+            border:2px solid #c7d2fe;
+            box-shadow:0 4px 8px rgba(0,0,0,0.1);
+            margin:10px 0;
+            transition: all 0.3s ease-in-out;
+        }
+        .blue-card:hover {
+            transform: translateY(-3px);
+            box-shadow:0 6px 12px rgba(0,0,0,0.15);
+        }
+        .metric-card {
+            background:#eef2ff;
+            border:2px solid #c7d2fe;
+            border-radius:12px;
+            text-align:center;
+            padding:18px;
+            font-weight:600;
+            color:#1e3a8a;
+            box-shadow:0 4px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease-in-out;
+        }
+        .metric-card:hover {
+            transform: scale(1.03);
+            box-shadow:0 8px 14px rgba(0,0,0,0.2);
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
 # ------------------ MAIN DASHBOARD ------------------
 def main_dashboard():
+    inject_style()
     user = st.session_state["user"]
     choice = sidebar_nav()
 
@@ -207,28 +239,11 @@ def main_dashboard():
                     st.error("❌ Could not extract readable text. Try uploading a clearer document.")
                 else:
                     st.success("✅ Document successfully processed!")
-
                     doc_type = detect_contract_type(text)
                     clauses = detect_clauses_with_excerpts(text)
                     risk_level, risk_comment = assess_risk(clauses)
                     summary = summarize_text(text, n=4)
                     save_history(user, doc_type, risk_level, uploaded_file.name if uploaded_file else "Manual Text")
-
-            # ======== BLUE 3D METRIC CARDS ========
-            st.markdown("""
-                <style>
-                .metric-card {
-                    background:#eef2ff;
-                    padding:20px;
-                    border-radius:12px;
-                    text-align:center;
-                    box-shadow:0 4px 8px rgba(0,0,0,0.1);
-                    border:2px solid #c7d2fe;
-                    font-weight:600;
-                    color:#1e3a8a;
-                }
-                </style>
-            """, unsafe_allow_html=True)
 
             col1, col2, col3, col4 = st.columns(4)
             col1.markdown(f"<div class='metric-card'>{len(text.split())}<br><small>Words</small></div>", unsafe_allow_html=True)
@@ -242,20 +257,15 @@ def main_dashboard():
             st.info(risk_comment)
 
             st.subheader("📑 Key Clauses Found")
-
-            # ======== BLUE 3D CLAUSE CARDS ========
             for clause, info in clauses.items():
                 excerpt = info["excerpt"][:250] + "..." if info["excerpt"] else ""
                 status_text = "Found" if info["found"] else "Missing"
                 st.markdown(f"""
-                    <div style='background:#eef2ff;padding:16px;border-radius:10px;margin:10px 0;
-                    border:2px solid #c7d2fe;box-shadow:0 3px 6px rgba(0,0,0,0.08);
-                    display:flex;justify-content:space-between;align-items:center;'>
-                        <div style='flex:1;'>
-                            <b>{clause}</b><br>
-                            <small>{excerpt}</small>
+                    <div class='blue-card'>
+                        <div style='display:flex;justify-content:space-between;align-items:center;'>
+                            <div><b>{clause}</b><br><small>{excerpt}</small></div>
+                            <div style='color:#1e3a8a;font-weight:600;'>{status_text}</div>
                         </div>
-                        <div style='color:#1e3a8a;font-weight:600;margin-left:12px;'>{status_text}</div>
                     </div>
                 """, unsafe_allow_html=True)
 
@@ -265,6 +275,31 @@ def main_dashboard():
             st.subheader("📜 Extracted Text")
             st.text_area("Full Document Text", text[:10000] + "...", height=250)
 
+    elif choice == "🔍 Compare Documents":
+        st.subheader("🔍 Compare Two Legal Documents")
+        file1 = st.file_uploader("Upload First Document", type=["pdf"], key="file1")
+        file2 = st.file_uploader("Upload Second Document", type=["pdf"], key="file2")
+
+        if file1 and file2:
+            with st.spinner("🔎 Comparing documents..."):
+                path1 = DATA_RAW / file1.name
+                path2 = DATA_RAW / file2.name
+                with open(path1, "wb") as f:
+                    f.write(file1.getbuffer())
+                with open(path2, "wb") as f:
+                    f.write(file2.getbuffer())
+
+                text1 = extract_text_from_pdf(str(path1))
+                text2 = extract_text_from_pdf(str(path2))
+                differences = compare_versions(text1, text2)
+
+            st.markdown("### 📄 Comparison Result")
+            if not differences:
+                st.info("✅ No major differences found.")
+            else:
+                for diff in differences:
+                    st.markdown(f"<div class='blue-card'>{diff}</div>", unsafe_allow_html=True)
+
     elif choice == "📊 Reports":
         st.subheader("📊 Document Analysis Reports")
         history = json.loads(HISTORY_FILE.read_text())
@@ -272,10 +307,9 @@ def main_dashboard():
         if not user_history:
             st.info("No reports yet.")
         else:
-            st.markdown("<style>.report-card{background:#eef2ff;padding:14px;border-radius:10px;margin:10px 0;border:2px solid #c7d2fe;box-shadow:0 3px 6px rgba(0,0,0,0.08);}</style>", unsafe_allow_html=True)
             for item in user_history[::-1]:
                 st.markdown(f"""
-                    <div class='report-card'>
+                    <div class='blue-card'>
                         <b>📄 {item['file']}</b><br>
                         <span>📁 Type: <b>{item['type']}</b></span><br>
                         <span>⚠ Risk Level: <b>{item['risk']}</b></span>
@@ -293,12 +327,9 @@ def main_dashboard():
             med = [d for d in user_history if d["risk"] == "Medium"]
             high = [d for d in user_history if d["risk"] == "High"]
 
-            st.markdown("<div style='background:#e0e7ff;padding:10px;border-radius:10px;margin-bottom:8px;'>🟢 Low Risk: "
-                        f"{len(low)} document(s)</div>", unsafe_allow_html=True)
-            st.markdown("<div style='background:#e0e7ff;padding:10px;border-radius:10px;margin-bottom:8px;'>🟡 Medium Risk: "
-                        f"{len(med)} document(s)</div>", unsafe_allow_html=True)
-            st.markdown("<div style='background:#e0e7ff;padding:10px;border-radius:10px;margin-bottom:8px;'>🔴 High Risk: "
-                        f"{len(high)} document(s)</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='blue-card'>🟢 Low Risk: {len(low)} document(s)</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='blue-card'>🟡 Medium Risk: {len(med)} document(s)</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='blue-card'>🔴 High Risk: {len(high)} document(s)</div>", unsafe_allow_html=True)
 
             if st.button("🗑 Clear History"):
                 history[user] = []
