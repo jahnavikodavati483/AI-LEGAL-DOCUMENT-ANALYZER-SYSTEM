@@ -1,6 +1,7 @@
 # ============================================================
-# AI Legal Document Analyzer - Final Version (Stable + Blue Theme Restored)
+# AI Legal Document Analyzer - Final Version (Stable + Blue Layout Restored)
 # Developed by Jahnavi Kodavati & Swejan | CSE - AI | SSE Chennai
+# Compatible with Streamlit 1.51.0
 # ============================================================
 
 import streamlit as st
@@ -52,7 +53,6 @@ def load_users():
             users[email] = {"password": data}
             upgraded = True
 
-    # Ensure owner exists
     if "jahnavikodavati483@gmail.com" not in users:
         users["jahnavikodavati483@gmail.com"] = {"password": hash_password("admin123")}
         upgraded = True
@@ -100,19 +100,15 @@ def extract_text_with_ocr(pdf_path):
 
 # ------------------ LOGIN PAGE ------------------
 def login_page():
-    st.markdown(
-        """
+    st.markdown("""
         <div class="login-card">
             <h2>🔐 AI Legal Document Analyzer</h2>
             <p>Login, Register or Reset Password to continue</p>
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    """, unsafe_allow_html=True)
 
     tab1, tab2, tab3 = st.tabs(["Login", "Register", "Reset Password"])
 
-    # LOGIN TAB
     with tab1:
         email = st.text_input("Email", key="login_email")
         password = st.text_input("Password", type="password", key="login_pass")
@@ -124,7 +120,6 @@ def login_page():
             else:
                 st.error("❌ Invalid credentials.")
 
-    # REGISTER TAB
     with tab2:
         email = st.text_input("New Email", key="reg_email")
         password = st.text_input("New Password", type="password", key="reg_pass")
@@ -134,7 +129,6 @@ def login_page():
             else:
                 st.warning("⚠ Email already registered.")
 
-    # RESET PASSWORD TAB
     with tab3:
         email = st.text_input("Your Registered Email", key="reset_email")
         new_pass = st.text_input("New Password", type="password", key="reset_pass")
@@ -146,8 +140,7 @@ def login_page():
 
 # ------------------ SIDEBAR ------------------
 def sidebar_nav():
-    st.sidebar.markdown(
-        """
+    st.sidebar.markdown("""
         <style>
         [data-testid="stSidebar"] { background-color: #e3e8ff; }
         .sidebar-title { font-weight: 700; color: #1e3a8a; margin-bottom: 18px; }
@@ -160,9 +153,7 @@ def sidebar_nav():
             display: flex; align-items: center;
         }
         </style>
-        """,
-        unsafe_allow_html=True,
-    )
+    """, unsafe_allow_html=True)
 
     st.sidebar.markdown("<h2 class='sidebar-title'>⚖ Legal Analyzer Dashboard</h2>", unsafe_allow_html=True)
     menu = ["📄 Analyze Document", "🔍 Compare Documents", "📊 Reports", "⚠ Risk Analysis", "🚪 Logout"]
@@ -236,50 +227,22 @@ def main_dashboard():
                 st.info(risk_comment)
 
                 st.subheader("📑 Key Clauses Found")
+
                 for clause, info in clauses.items():
                     excerpt = info["excerpt"][:250] + "..." if info["excerpt"] else ""
                     status_icon = "✅" if info["found"] else "❌"
                     status_text = "Found" if info["found"] else "Missing"
-                    st.markdown(
-                        f"""
+                    st.markdown(f"""
                         <div style='background:#eef2ff;padding:12px;border-radius:10px;margin:8px 0;
                         box-shadow:0 1px 3px rgba(0,0,0,0.1);'>
                             <b>{clause}</b>
                             <span style='float:right;font-weight:600;color:#1e3a8a;'>{status_icon} {status_text}</span>
                             <br><small>{excerpt}</small>
                         </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
+                    """, unsafe_allow_html=True)
 
                 st.subheader("🧠 Summary")
                 st.success(summary)
-
-                st.subheader("📜 Extracted Text")
-                st.text_area("Full Document Text", text[:10000] + "...", height=250)
-
-    elif choice == "🔍 Compare Documents":
-        st.subheader("🔍 Compare Two Legal Documents")
-        file1 = st.file_uploader("Upload First Document", type=["pdf"], key="file1")
-        file2 = st.file_uploader("Upload Second Document", type=["pdf"], key="file2")
-        if file1 and file2:
-            path1 = DATA_RAW / file1.name
-            path2 = DATA_RAW / file2.name
-            with open(path1, "wb") as f:
-                f.write(file1.getbuffer())
-            with open(path2, "wb"):
-                f.write(file2.getbuffer())
-
-            text1 = extract_text_from_pdf(str(path1))
-            text2 = extract_text_from_pdf(str(path2))
-            differences = compare_versions(text1, text2)
-
-            st.markdown("### 📄 Comparison Result")
-            if not differences:
-                st.info("No major differences found.")
-            else:
-                for diff in differences:
-                    st.markdown(f"<div style='background:#eef2ff;padding:10px;border-radius:10px;margin:6px;'>{diff}</div>", unsafe_allow_html=True)
 
     elif choice == "📊 Reports":
         st.subheader("📊 Document Analysis Reports")
@@ -289,54 +252,22 @@ def main_dashboard():
             st.info("No reports yet.")
         else:
             for item in user_history[::-1]:
-                st.markdown(
-                    f"""
+                st.markdown(f"""
                     <div style='background:#eef2ff;padding:10px;border-radius:10px;margin:6px;
                     box-shadow:0 1px 3px rgba(0,0,0,0.1);'>
                         <b>📄 {item['file']}</b><br>
                         <span>📁 Type: <b>{item['type']}</b></span><br>
                         <span>⚠ Risk Level: <b>{item['risk']}</b></span>
                     </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+                """, unsafe_allow_html=True)
 
-    elif choice == "⚠ Risk Analysis":
-        st.subheader("⚠ Risk Level Overview")
-        history = json.loads(HISTORY_FILE.read_text())
-        user_history = history.get(user, [])
-        if not user_history:
-            st.info("No analyzed documents yet.")
-        else:
-            low = [d for d in user_history if d["risk"] == "Low"]
-            med = [d for d in user_history if d["risk"] == "Medium"]
-            high = [d for d in user_history if d["risk"] == "High"]
-
-            st.markdown("<div style='background:#e0e7ff;padding:10px;border-radius:10px;margin-bottom:8px;'>🟢 Low Risk: "
-                        f"{len(low)} document(s)</div>", unsafe_allow_html=True)
-            st.markdown("<div style='background:#e0e7ff;padding:10px;border-radius:10px;margin-bottom:8px;'>🟡 Medium Risk: "
-                        f"{len(med)} document(s)</div>", unsafe_allow_html=True)
-            st.markdown("<div style='background:#e0e7ff;padding:10px;border-radius:10px;margin-bottom:8px;'>🔴 High Risk: "
-                        f"{len(high)} document(s)</div>", unsafe_allow_html=True)
-
-            if st.button("🗑 Clear History"):
-                history[user] = []
-                HISTORY_FILE.write_text(json.dumps(history, indent=2))
-                st.success("✅ History cleared successfully!")
-                st.rerun()
-
-# ------------------ SELF-CHECK & APP ENTRY ------------------
+# ------------------ APP ENTRY ------------------
 def main():
     st.set_page_config(page_title="AI Legal Document Analyzer", layout="wide")
-
-    try:
-        if "user" not in st.session_state:
-            login_page()
-        else:
-            main_dashboard()
-    except Exception as e:
-        st.error("⚠️ App failed to load correctly. Please refresh or check logs.")
-        st.code(str(e))
+    if "user" not in st.session_state:
+        login_page()
+    else:
+        main_dashboard()
 
 if __name__ == "__main__":
     main()
