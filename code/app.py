@@ -1,5 +1,5 @@
 # ============================================================
-# AI Legal Document Analyzer - Final Version (Secure + Password Reset)
+# AI Legal Document Analyzer - Final Version (Stable + Blue Theme Restored)
 # Developed by Jahnavi Kodavati & Swejan | CSE - AI | SSE Chennai
 # ============================================================
 
@@ -46,7 +46,6 @@ def load_users():
     except (FileNotFoundError, json.JSONDecodeError):
         users = {}
 
-    # Convert old format (plain hash) to new dict format
     upgraded = False
     for email, data in list(users.items()):
         if isinstance(data, str):
@@ -202,6 +201,7 @@ def main_dashboard():
     elif choice == "📄 Analyze Document":
         uploaded_file = st.file_uploader("📂 Upload Legal Document (PDF)", type=["pdf"])
         manual_text = st.text_area("📝 Or Paste Document Text Here", height=150)
+
         if uploaded_file or manual_text.strip():
             if uploaded_file:
                 file_path = DATA_RAW / uploaded_file.name
@@ -236,15 +236,21 @@ def main_dashboard():
                 st.info(risk_comment)
 
                 st.subheader("📑 Key Clauses Found")
+
+                # BLUE CARD STYLE FOR BOTH FOUND & MISSING
                 for clause, info in clauses.items():
                     excerpt = info["excerpt"][:250] + "..." if info["excerpt"] else ""
                     status_icon = "✅" if info["found"] else "❌"
                     status_text = "Found" if info["found"] else "Missing"
                     st.markdown(
-                        f"<div class='clause-card' style='position:relative;'>"
-                        f"<b>{clause}</b>"
-                        f"<span style='position:absolute; right:15px; top:15px; font-weight:600; color:#1e3a8a;'>"
-                        f"{status_icon} {status_text}</span><br><small>{excerpt}</small></div>",
+                        f"""
+                        <div style='background:#eef2ff;padding:12px;border-radius:10px;margin:8px 0;
+                        box-shadow:0 1px 3px rgba(0,0,0,0.1);'>
+                            <b>{clause}</b>
+                            <span style='float:right;font-weight:600;color:#1e3a8a;'>{status_icon} {status_text}</span>
+                            <br><small>{excerpt}</small>
+                        </div>
+                        """,
                         unsafe_allow_html=True,
                     )
 
@@ -265,15 +271,17 @@ def main_dashboard():
                 f.write(file1.getbuffer())
             with open(path2, "wb") as f:
                 f.write(file2.getbuffer())
+
             text1 = extract_text_from_pdf(str(path1))
             text2 = extract_text_from_pdf(str(path2))
             differences = compare_versions(text1, text2)
+
             st.markdown("### 📄 Comparison Result")
             if not differences:
                 st.info("No major differences found.")
             else:
                 for diff in differences:
-                    st.markdown(f"<div class='report-card'>{diff}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='background:#eef2ff;padding:10px;border-radius:10px;margin:6px;'>{diff}</div>", unsafe_allow_html=True)
 
     elif choice == "📊 Reports":
         st.subheader("📊 Document Analysis Reports")
@@ -284,9 +292,14 @@ def main_dashboard():
         else:
             for item in user_history[::-1]:
                 st.markdown(
-                    f"<div class='report-card'><b>📄 {item['file']}</b><br>"
-                    f"<span>📁 Type: <b>{item['type']}</b></span><br>"
-                    f"<span>⚠ Risk Level: <b>{item['risk']}</b></span></div>",
+                    f"""
+                    <div style='background:#eef2ff;padding:10px;border-radius:10px;margin:6px;
+                    box-shadow:0 1px 3px rgba(0,0,0,0.1);'>
+                        <b>📄 {item['file']}</b><br>
+                        <span>📁 Type: <b>{item['type']}</b></span><br>
+                        <span>⚠ Risk Level: <b>{item['risk']}</b></span>
+                    </div>
+                    """,
                     unsafe_allow_html=True,
                 )
 
@@ -315,11 +328,9 @@ def main_dashboard():
                 st.rerun()
 
 # ------------------ APP ENTRY ------------------
-# ------------------ APP ENTRY ------------------
 def main():
     st.set_page_config(page_title="AI Legal Document Analyzer", layout="wide")
 
-    # Each visitor starts fresh only the first time (not after login)
     if "user" not in st.session_state:
         login_page()
     else:
