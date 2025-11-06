@@ -1,5 +1,5 @@
 # ============================================================
-# AI Legal Document Analyzer - Final Version (Stable + Blue Theme Restored + Spinner + Admin View)
+# AI Legal Document Analyzer - Final Version (Stable + Blue Theme Restored)
 # Developed by Jahnavi Kodavati & Swejan | CSE - AI | SSE Chennai
 # ============================================================
 
@@ -203,79 +203,78 @@ def main_dashboard():
         manual_text = st.text_area("📝 Or Paste Document Text Here", height=150)
 
         if uploaded_file or manual_text.strip():
-            with st.spinner("🔍 Analyzing document... Please wait..."):
-                if uploaded_file:
-                    file_path = DATA_RAW / uploaded_file.name
-                    with open(file_path, "wb") as f:
-                        f.write(uploaded_file.getbuffer())
-                    text = extract_text_from_pdf(str(file_path))
-                    if not text or len(text) < 20:
-                        st.warning("⚠ Detected a scanned document. Applying OCR extraction...")
-                        text = extract_text_with_ocr(str(file_path))
-                else:
-                    text = manual_text
-
+            if uploaded_file:
+                file_path = DATA_RAW / uploaded_file.name
+                with open(file_path, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+                text = extract_text_from_pdf(str(file_path))
                 if not text or len(text) < 20:
-                    st.error("❌ Could not extract readable text. Try uploading a clearer document.")
-                else:
-                    st.success("✅ Document successfully processed!")
-                    doc_type = detect_contract_type(text)
-                    clauses = detect_clauses_with_excerpts(text)
-                    risk_level, risk_comment = assess_risk(clauses)
-                    summary = summarize_text(text, n=4)
-                    save_history(user, doc_type, risk_level, uploaded_file.name if uploaded_file else "Manual Text")
+                    st.warning("⚠ Detected a scanned document. Applying OCR extraction...")
+                    text = extract_text_with_ocr(str(file_path))
+            else:
+                text = manual_text
 
-            col1, col2, col3, col4 = st.columns(4)
-            col1.metric("Words", len(text.split()))
-            col2.metric("Characters", len(text))
-            col3.metric("Sentences", text.count("."))
-            col4.metric("Risk", risk_level)
+            if not text or len(text) < 20:
+                st.error("❌ Could not extract readable text. Try uploading a clearer document.")
+            else:
+                st.success("✅ Document successfully processed!")
+                doc_type = detect_contract_type(text)
+                clauses = detect_clauses_with_excerpts(text)
+                risk_level, risk_comment = assess_risk(clauses)
+                summary = summarize_text(text, n=4)
+                save_history(user, doc_type, risk_level, uploaded_file.name if uploaded_file else "Manual Text")
 
-            st.markdown("---")
-            st.subheader("📘 Document Overview")
-            st.write(f"Detected Type: *{doc_type}*")
-            st.info(risk_comment)
+                col1, col2, col3, col4 = st.columns(4)
+                col1.metric("Words", len(text.split()))
+                col2.metric("Characters", len(text))
+                col3.metric("Sentences", text.count("."))
+                col4.metric("Risk", risk_level)
 
-            st.subheader("📑 Key Clauses Found")
+                st.markdown("---")
+                st.subheader("📘 Document Overview")
+                st.write(f"Detected Type: *{doc_type}*")
+                st.info(risk_comment)
 
-            for clause, info in clauses.items():
-                excerpt = info["excerpt"][:250] + "..." if info["excerpt"] else ""
-                status_icon = "✅" if info["found"] else "❌"
-                status_text = "Found" if info["found"] else "Missing"
-                st.markdown(
-                    f"""
-                    <div style='background:#eef2ff;padding:12px;border-radius:10px;margin:8px 0;
-                    box-shadow:0 1px 3px rgba(0,0,0,0.1);'>
-                        <b>{clause}</b>
-                        <span style='float:right;font-weight:600;color:#1e3a8a;'>{status_icon} {status_text}</span>
-                        <br><small>{excerpt}</small>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+                st.subheader("📑 Key Clauses Found")
 
-            st.subheader("🧠 Summary")
-            st.success(summary)
+                # BLUE CARD STYLE FOR BOTH FOUND & MISSING
+                for clause, info in clauses.items():
+                    excerpt = info["excerpt"][:250] + "..." if info["excerpt"] else ""
+                    status_icon = "✅" if info["found"] else "❌"
+                    status_text = "Found" if info["found"] else "Missing"
+                    st.markdown(
+                        f"""
+                        <div style='background:#eef2ff;padding:12px;border-radius:10px;margin:8px 0;
+                        box-shadow:0 1px 3px rgba(0,0,0,0.1);'>
+                            <b>{clause}</b>
+                            <span style='float:right;font-weight:600;color:#1e3a8a;'>{status_icon} {status_text}</span>
+                            <br><small>{excerpt}</small>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
 
-            st.subheader("📜 Extracted Text")
-            st.text_area("Full Document Text", text[:10000] + "...", height=250)
+                st.subheader("🧠 Summary")
+                st.success(summary)
+
+                st.subheader("📜 Extracted Text")
+                st.text_area("Full Document Text", text[:10000] + "...", height=250)
 
     elif choice == "🔍 Compare Documents":
         st.subheader("🔍 Compare Two Legal Documents")
         file1 = st.file_uploader("Upload First Document", type=["pdf"], key="file1")
         file2 = st.file_uploader("Upload Second Document", type=["pdf"], key="file2")
         if file1 and file2:
-            with st.spinner("🔍 Comparing documents... Please wait..."):
-                path1 = DATA_RAW / file1.name
-                path2 = DATA_RAW / file2.name
-                with open(path1, "wb") as f:
-                    f.write(file1.getbuffer())
-                with open(path2, "wb") as f:
-                    f.write(file2.getbuffer())
+            path1 = DATA_RAW / file1.name
+            path2 = DATA_RAW / file2.name
+            with open(path1, "wb") as f:
+                f.write(file1.getbuffer())
+            with open(path2, "wb") as f:
+                f.write(file2.getbuffer())
 
-                text1 = extract_text_from_pdf(str(path1))
-                text2 = extract_text_from_pdf(str(path2))
-                differences = compare_versions(text1, text2)
+            text1 = extract_text_from_pdf(str(path1))
+            text2 = extract_text_from_pdf(str(path2))
+            differences = compare_versions(text1, text2)
 
             st.markdown("### 📄 Comparison Result")
             if not differences:
@@ -286,30 +285,6 @@ def main_dashboard():
 
     elif choice == "📊 Reports":
         st.subheader("📊 Document Analysis Reports")
-
-        # 👁 Admin can view all users' reports
-        if user == "jahnavikodavati483@gmail.com":
-            st.markdown("### 👁 View All User Reports (Admin Access)")
-            if st.button("Show All User Data"):
-                history = json.loads(HISTORY_FILE.read_text())
-                if not history:
-                    st.info("No user has uploaded any document yet.")
-                else:
-                    for usr, reports in history.items():
-                        st.markdown(f"<div style='background:#dbeafe;padding:10px;border-radius:10px;margin:8px 0;'><b>👤 {usr}</b></div>", unsafe_allow_html=True)
-                        for item in reports[::-1]:
-                            st.markdown(
-                                f"""
-                                <div style='background:#eef2ff;padding:10px;border-radius:10px;margin:6px;
-                                box-shadow:0 1px 3px rgba(0,0,0,0.1);'>
-                                    <b>📄 {item['file']}</b><br>
-                                    <span>📁 Type: <b>{item['type']}</b></span><br>
-                                    <span>⚠ Risk Level: <b>{item['risk']}</b></span>
-                                </div>
-                                """,
-                                unsafe_allow_html=True,
-                            )
-
         history = json.loads(HISTORY_FILE.read_text())
         user_history = history.get(user, [])
         if not user_history:
