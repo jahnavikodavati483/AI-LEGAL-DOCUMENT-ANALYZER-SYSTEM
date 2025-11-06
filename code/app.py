@@ -1,7 +1,6 @@
 # ============================================================
-# AI Legal Document Analyzer - Final Cloud Version (Stable)
+# AI Legal Document Analyzer - Final Cloud Version (Secure + Owner + Stable)
 # Developed by Jahnavi Kodavati & Swejan | CSE - AI | SSE Chennai
-# Features: OCR, Metrics, Reports, Risk Analysis, Comparison
 # ============================================================
 
 import streamlit as st
@@ -56,16 +55,16 @@ def load_users():
     except (FileNotFoundError, json.JSONDecodeError):
         users = {}
 
-    # ✅ Auto-upgrade old users (plain strings → dict)
+    # Upgrade old users
     upgraded = False
     for email, data in list(users.items()):
         if isinstance(data, str):
             users[email] = {"password": data, "role": "user"}
             upgraded = True
 
-    # ✅ Ensure owner account exists
-    if "jahnavi@example.com" not in users:
-        users["jahnavi@example.com"] = {
+    # Ensure owner
+    if "jahnavi.kodavati483@gmail.com" not in users:
+        users["jahnavi.kodavati483@gmail.com"] = {
             "password": hash_password("admin123"),
             "role": "owner"
         }
@@ -167,14 +166,8 @@ def sidebar_nav(role):
     st.sidebar.markdown(
         """
         <style>
-        [data-testid="stSidebar"] {
-            background-color: #e3e8ff;
-        }
-        .sidebar-title {
-            font-weight: 700;
-            color: #1e3a8a;
-            margin-bottom: 18px;
-        }
+        [data-testid="stSidebar"] { background-color: #e3e8ff; }
+        .sidebar-title { font-weight: 700; color: #1e3a8a; margin-bottom: 18px; }
         div[role="radiogroup"] > label {
             margin-bottom: 12px !important;
             padding: 8px 12px !important;
@@ -188,7 +181,6 @@ def sidebar_nav(role):
         """,
         unsafe_allow_html=True,
     )
-
     st.sidebar.markdown("<h2 class='sidebar-title'>⚖ Legal Analyzer Dashboard</h2>", unsafe_allow_html=True)
     menu = ["📄 Analyze Document", "🔍 Compare Documents", "📊 Reports", "⚠ Risk Analysis"]
     if role == "owner":
@@ -269,15 +261,18 @@ def main_dashboard():
                 risk_level, risk_comment = assess_risk(clauses)
                 summary = summarize_text(text, n=4)
                 save_history(user, doc_type, risk_level, uploaded_file.name if uploaded_file else "Manual Text")
+
                 col1, col2, col3, col4 = st.columns(4)
                 col1.metric("Words", len(text.split()))
                 col2.metric("Characters", len(text))
                 col3.metric("Sentences", text.count("."))
                 col4.metric("Risk", risk_level)
+
                 st.markdown("---")
                 st.subheader("📘 Document Overview")
                 st.write(f"Detected Type: **{doc_type}**")
                 st.info(risk_comment)
+
                 st.subheader("📑 Key Clauses Found")
                 for clause, info in clauses.items():
                     excerpt = info["excerpt"][:250] + "..." if info["excerpt"] else ""
@@ -290,10 +285,33 @@ def main_dashboard():
                         f"{status_icon} {status_text}</span><br><small>{excerpt}</small></div>",
                         unsafe_allow_html=True,
                     )
+
                 st.subheader("🧠 Summary")
                 st.success(summary)
                 st.subheader("📜 Extracted Text")
                 st.text_area("Full Document Text", text[:10000] + "...", height=250)
+
+    elif choice == "🔍 Compare Documents":
+        st.subheader("🔍 Compare Two Legal Documents")
+        file1 = st.file_uploader("Upload First Document", type=["pdf"], key="file1")
+        file2 = st.file_uploader("Upload Second Document", type=["pdf"], key="file2")
+        if file1 and file2:
+            path1 = DATA_RAW / file1.name
+            path2 = DATA_RAW / file2.name
+            with open(path1, "wb") as f:
+                f.write(file1.getbuffer())
+            with open(path2, "wb") as f:
+                f.write(file2.getbuffer())
+            text1 = extract_text_from_pdf(str(path1))
+            text2 = extract_text_from_pdf(str(path2))
+            differences = compare_versions(text1, text2)
+
+            st.markdown("### 📄 Comparison Result")
+            if not differences:
+                st.info("No major differences found.")
+            else:
+                for diff in differences:
+                    st.markdown(f"<div class='report-card'>{diff}</div>", unsafe_allow_html=True)
 
     elif choice == "📊 Reports":
         st.subheader("📊 Document Analysis Reports")
@@ -329,18 +347,20 @@ def main_dashboard():
                         f"{len(high)} document(s)</div>", unsafe_allow_html=True)
 
             if st.button("🗑 Clear History"):
-                history[user] = []
-                HISTORY_FILE.write_text(json.dumps(history, indent=2))
-                log_activity(user, "Cleared history")
-                st.success("✅ History cleared successfully!")
-                st.rerun()
+                if st.confirm("Are you sure you want to clear all history?"):
+                    history[user] = []
+                    HISTORY_FILE.write_text(json.dumps(history, indent=2))
+                    log_activity(user, "Cleared history")
+                    st.success("✅ History cleared successfully!")
+                    st.rerun()
 
 # ------------------ APP ENTRY ------------------
 def main():
     st.set_page_config(page_title="AI Legal Document Analyzer", layout="wide")
 
-    # Always force new visitors to login (auto logout others)
+    # Always force login for new visitors (no shared session)
     forget_user()
+    st.session_state.clear()
 
     if "user" not in st.session_state:
         login_page()
