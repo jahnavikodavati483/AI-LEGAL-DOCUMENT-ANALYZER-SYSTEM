@@ -48,8 +48,8 @@ def load_users():
         if isinstance(d,str):
             users[e]={"password":d,"role":"user"}; upgraded=True
     # ensure owner
-    if "jahnavi.kodavati483@gmail.com" not in users:
-        users["jahnavi.kodavati483@gmail.com"]={"password":hash_password("admin123"),"role":"owner"}; upgraded=True
+    if "jahnavikodavati483@gmail.com" not in users:
+        users["jahnavikodavati483@gmail.com"]={"password":hash_password("admin123"),"role":"owner"}; upgraded=True
     if upgraded: save_users(users)
     return users
 
@@ -102,8 +102,8 @@ def login_page():
         with c2.popover("Forgot password (Owner only)"):
             new_pw=st.text_input("Enter new password",type="password")
             if st.button("Reset Owner Password"):
-                if email=="jahnavi.kodavati483@gmail.com":
-                    users["jahnavi.kodavati483@gmail.com"]["password"]=hash_password(new_pw)
+                if email=="jahnavikodavati483@gmail.com":
+                    users["jahnavikodavati483@gmail.com"]["password"]=hash_password(new_pw)
                     save_users(users)
                     st.success("Owner password reset successfully!")
                 else:
