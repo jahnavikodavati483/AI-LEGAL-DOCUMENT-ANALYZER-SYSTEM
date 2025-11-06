@@ -21,7 +21,7 @@ import pytesseract
 from PIL import Image
 
 # ------------------ PATH SETUP ------------------
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(_file_).resolve().parent
 DATA_RAW = BASE_DIR.parent / "data" / "raw documents"
 DATA_REPORTS = BASE_DIR.parent / "data" / "reports"
 
@@ -233,7 +233,7 @@ def main_dashboard():
 
             st.markdown("---")
             st.subheader("📘 Document Overview")
-            st.write(f"Detected Type: **{doc_type}**")
+            st.write(f"Detected Type: *{doc_type}*")
             st.info(risk_comment)
 
             st.subheader("📑 Key Clauses Found")
@@ -361,5 +361,5 @@ def main():
     else:
         main_dashboard()
 
-if __name__ == "__main__":
+if _name_ == "_main_":
     main()
