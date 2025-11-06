@@ -1,5 +1,5 @@
 # ============================================================
-# AI Legal Document Analyzer - Final Version (Blue Layout Restored)
+# AI Legal Document Analyzer - Final Blue Card Version
 # Developed by Jahnavi Kodavati & Swejan | CSE - AI | SSE Chennai
 # ============================================================
 
@@ -48,7 +48,6 @@ def load_users():
 
     if "jahnavikodavati483@gmail.com" not in users:
         users["jahnavikodavati483@gmail.com"] = {"password": hash_password("admin123")}
-
     return users
 
 def save_users(users):
@@ -101,7 +100,6 @@ def login_page():
 
     tab1, tab2, tab3 = st.tabs(["Login", "Register", "Reset Password"])
 
-    # LOGIN
     with tab1:
         email = st.text_input("Email", key="login_email")
         password = st.text_input("Password", type="password", key="login_pass")
@@ -113,7 +111,6 @@ def login_page():
             else:
                 st.error("❌ Invalid credentials.")
 
-    # REGISTER
     with tab2:
         email = st.text_input("New Email", key="reg_email")
         password = st.text_input("New Password", type="password", key="reg_pass")
@@ -123,7 +120,6 @@ def login_page():
             else:
                 st.warning("⚠ Email already registered.")
 
-    # RESET PASSWORD
     with tab3:
         email = st.text_input("Your Registered Email", key="reset_email")
         new_pass = st.text_input("New Password", type="password", key="reset_pass")
@@ -218,12 +214,27 @@ def main_dashboard():
                     summary = summarize_text(text, n=4)
                     save_history(user, doc_type, risk_level, uploaded_file.name if uploaded_file else "Manual Text")
 
-            # Blue metric row
+            # ======== BLUE 3D METRIC CARDS ========
+            st.markdown("""
+                <style>
+                .metric-card {
+                    background:#eef2ff;
+                    padding:20px;
+                    border-radius:12px;
+                    text-align:center;
+                    box-shadow:0 4px 8px rgba(0,0,0,0.1);
+                    border:2px solid #c7d2fe;
+                    font-weight:600;
+                    color:#1e3a8a;
+                }
+                </style>
+            """, unsafe_allow_html=True)
+
             col1, col2, col3, col4 = st.columns(4)
-            col1.metric("Words", len(text.split()))
-            col2.metric("Characters", len(text))
-            col3.metric("Sentences", text.count("."))
-            col4.metric("Risk", risk_level)
+            col1.markdown(f"<div class='metric-card'>{len(text.split())}<br><small>Words</small></div>", unsafe_allow_html=True)
+            col2.markdown(f"<div class='metric-card'>{len(text)}<br><small>Characters</small></div>", unsafe_allow_html=True)
+            col3.markdown(f"<div class='metric-card'>{text.count('.')}<br><small>Sentences</small></div>", unsafe_allow_html=True)
+            col4.markdown(f"<div class='metric-card'>{risk_level}<br><small>Risk</small></div>", unsafe_allow_html=True)
 
             st.markdown("---")
             st.subheader("📘 Document Overview")
@@ -232,56 +243,27 @@ def main_dashboard():
 
             st.subheader("📑 Key Clauses Found")
 
-            # Blue clause cards (exact layout restored)
+            # ======== BLUE 3D CLAUSE CARDS ========
             for clause, info in clauses.items():
                 excerpt = info["excerpt"][:250] + "..." if info["excerpt"] else ""
                 status_text = "Found" if info["found"] else "Missing"
-                st.markdown(
-                    f"""
-                    <div style='background:#eef2ff;padding:14px 18px;border-radius:10px;margin:10px 0;
-                    box-shadow:0 1px 3px rgba(0,0,0,0.1);display:flex;justify-content:space-between;align-items:center;'>
+                st.markdown(f"""
+                    <div style='background:#eef2ff;padding:16px;border-radius:10px;margin:10px 0;
+                    border:2px solid #c7d2fe;box-shadow:0 3px 6px rgba(0,0,0,0.08);
+                    display:flex;justify-content:space-between;align-items:center;'>
                         <div style='flex:1;'>
                             <b>{clause}</b><br>
                             <small>{excerpt}</small>
                         </div>
-                        <div style='color:#1e3a8a;font-weight:600;margin-left:12px;'>
-                            {status_text}
-                        </div>
+                        <div style='color:#1e3a8a;font-weight:600;margin-left:12px;'>{status_text}</div>
                     </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+                """, unsafe_allow_html=True)
 
             st.subheader("🧠 Summary")
             st.success(summary)
 
             st.subheader("📜 Extracted Text")
             st.text_area("Full Document Text", text[:10000] + "...", height=250)
-
-    elif choice == "🔍 Compare Documents":
-        st.subheader("🔍 Compare Two Legal Documents")
-        file1 = st.file_uploader("Upload First Document", type=["pdf"], key="file1")
-        file2 = st.file_uploader("Upload Second Document", type=["pdf"], key="file2")
-        if file1 and file2:
-            with st.spinner("Comparing..."):
-                path1 = DATA_RAW / file1.name
-                path2 = DATA_RAW / file2.name
-                with open(path1, "wb") as f:
-                    f.write(file1.getbuffer())
-                with open(path2, "wb") as f:
-                    f.write(file2.getbuffer())
-                text1 = extract_text_from_pdf(str(path1))
-                text2 = extract_text_from_pdf(str(path2))
-                differences = compare_versions(text1, text2)
-            st.markdown("### 📄 Comparison Result")
-            if not differences:
-                st.info("No major differences found.")
-            else:
-                for diff in differences:
-                    st.markdown(
-                        f"<div style='background:#eef2ff;padding:10px;border-radius:10px;margin:6px;'>{diff}</div>",
-                        unsafe_allow_html=True,
-                    )
 
     elif choice == "📊 Reports":
         st.subheader("📊 Document Analysis Reports")
@@ -290,18 +272,15 @@ def main_dashboard():
         if not user_history:
             st.info("No reports yet.")
         else:
+            st.markdown("<style>.report-card{background:#eef2ff;padding:14px;border-radius:10px;margin:10px 0;border:2px solid #c7d2fe;box-shadow:0 3px 6px rgba(0,0,0,0.08);}</style>", unsafe_allow_html=True)
             for item in user_history[::-1]:
-                st.markdown(
-                    f"""
-                    <div style='background:#eef2ff;padding:10px;border-radius:10px;margin:6px;
-                    box-shadow:0 1px 3px rgba(0,0,0,0.1);'>
+                st.markdown(f"""
+                    <div class='report-card'>
                         <b>📄 {item['file']}</b><br>
                         <span>📁 Type: <b>{item['type']}</b></span><br>
                         <span>⚠ Risk Level: <b>{item['risk']}</b></span>
                     </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+                """, unsafe_allow_html=True)
 
     elif choice == "⚠ Risk Analysis":
         st.subheader("⚠ Risk Level Overview")
