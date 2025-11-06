@@ -1,7 +1,7 @@
 # ⚖️ AI Legal Document Analyzer
 
 A Streamlit-based AI tool that analyzes legal documents, detects clauses, compares contracts, and assesses legal risk.  
-Developed by **Jahnavi Kodavati** | CSE - AI | Saveetha School of Engineering, Chennai.
+Developed by **Jahnavi Kodavati** , CSE - AI , Saveetha School of Engineering, Chennai.
 
 ---
 
