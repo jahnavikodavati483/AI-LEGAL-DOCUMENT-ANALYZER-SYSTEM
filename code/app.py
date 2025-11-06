@@ -1,7 +1,8 @@
 # ============================================================
-# AI Legal Document Analyzer - Final Version
+# AI Legal Document Analyzer - Final Version (Updated)
 # Developed by Jahnavi Kodavati & Swejan | CSE - AI | SSE Chennai
 # Features: OCR, Metrics, Reports, Risk Analysis, Comparison
+# Added: Per-user isolation + Owner activity tracking
 # ============================================================
 
 import streamlit as st
@@ -9,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import hashlib
+from datetime import datetime
 from document_reader import (
     extract_text_from_pdf,
     summarize_text,
@@ -20,6 +22,7 @@ from document_reader import (
 from pdf2image import convert_from_path
 import pytesseract
 from PIL import Image
+import pandas as pd
 
 # ------------------ PATH SETUP ------------------
 BASE_DIR = Path(__file__).resolve().parent
@@ -32,6 +35,7 @@ for path in [DATA_RAW, DATA_REPORTS]:
 USERS_FILE = BASE_DIR / "users.json"
 HISTORY_FILE = BASE_DIR / "history.json"
 LAST_USER_FILE = BASE_DIR / "last_user.json"
+ACTIVITY_FILE = BASE_DIR / "login_activity.csv"
 
 for f in [USERS_FILE, HISTORY_FILE, LAST_USER_FILE]:
     if not f.exists():
@@ -56,13 +60,14 @@ def save_users(users):
 def verify_user(email, password):
     users = load_users()
     hashed = hash_password(password)
-    return email in users and users[email] == hashed
+    return email in users and users[email]["password"] == hashed
 
 def register_user(email, password):
     users = load_users()
     if email in users:
         return False
-    users[email] = hash_password(password)
+    # Default role: user | Owner must be manually set in users.json if needed
+    users[email] = {"password": hash_password(password), "role": "user"}
     save_users(users)
     return True
 
@@ -81,6 +86,16 @@ def get_remembered_user():
 def forget_user():
     if LAST_USER_FILE.exists():
         LAST_USER_FILE.write_text("{}")
+
+# ------------------ ACTIVITY TRACKING ------------------
+def log_activity(email, action):
+    """Log user actions into CSV file"""
+    record = pd.DataFrame([[email, action, datetime.now().strftime("%Y-%m-%d %H:%M:%S")]],
+                          columns=["User", "Action", "Time"])
+    if ACTIVITY_FILE.exists():
+        old = pd.read_csv(ACTIVITY_FILE)
+        record = pd.concat([old, record], ignore_index=True)
+    record.to_csv(ACTIVITY_FILE, index=False)
 
 # ------------------ OCR FUNCTION ------------------
 def extract_text_with_ocr(pdf_path):
@@ -112,8 +127,10 @@ def login_page():
         password = st.text_input("Password", type="password", key="login_pass")
         if st.button("Login"):
             if verify_user(email, password):
-                st.session_state["user"] = email
+                users = load_users()
+                st.session_state["user"] = {"email": email, "role": users[email]["role"]}
                 remember_user(email)
+                log_activity(email, "Logged in")
                 st.success(f"✅ Welcome back, {email}!")
                 st.rerun()
             else:
@@ -125,14 +142,15 @@ def login_page():
         if st.button("Register"):
             if register_user(email, password):
                 st.success("✅ Account created successfully!")
-                st.session_state["user"] = email
+                st.session_state["user"] = {"email": email, "role": "user"}
                 remember_user(email)
+                log_activity(email, "Registered new account")
                 st.rerun()
             else:
                 st.warning("⚠ Email already registered. Please login.")
 
 # ------------------ SIDEBAR ------------------
-def sidebar_nav():
+def sidebar_nav(role):
     st.sidebar.markdown(
         """
         <style>
@@ -159,7 +177,11 @@ def sidebar_nav():
     )
 
     st.sidebar.markdown("<h2 class='sidebar-title'>⚖ Legal Analyzer Dashboard</h2>", unsafe_allow_html=True)
-    menu = ["📄 Analyze Document", "🔍 Compare Documents", "📊 Reports", "⚠ Risk Analysis", "🚪 Logout"]
+    menu = ["📄 Analyze Document", "🔍 Compare Documents", "📊 Reports", "⚠ Risk Analysis"]
+    if role == "owner":
+        menu.append("👁️ User Activity")
+    menu.append("🚪 Logout")
+
     choice = st.sidebar.radio("Navigate", menu, label_visibility="collapsed")
     st.sidebar.markdown("---")
     lang = st.sidebar.selectbox("🌐 Language", ["English", "Hindi", "Tamil", "Telugu"])
@@ -181,8 +203,11 @@ def save_history(user, doc_type, risk, filename):
 
 # ------------------ MAIN DASHBOARD ------------------
 def main_dashboard():
-    user = st.session_state["user"]
-    choice = sidebar_nav()
+    user_info = st.session_state["user"]
+    user = user_info["email"]
+    role = user_info["role"]
+
+    choice = sidebar_nav(role)
 
     with open(BASE_DIR.parent / "styles.css") as css:
         st.markdown(f"<style>{css.read()}</style>", unsafe_allow_html=True)
@@ -191,10 +216,19 @@ def main_dashboard():
     st.caption(f"Welcome, {user} | Smart Legal Insights in {st.session_state['language']}")
 
     if choice == "🚪 Logout":
+        log_activity(user, "Logged out")
         forget_user()
         del st.session_state["user"]
         st.success("✅ Logged out successfully!")
         st.rerun()
+
+    elif choice == "👁️ User Activity" and role == "owner":
+        st.subheader("👁️ User Login & Activity Log")
+        if ACTIVITY_FILE.exists():
+            df = pd.read_csv(ACTIVITY_FILE)
+            st.dataframe(df.sort_values("Time", ascending=False), use_container_width=True)
+        else:
+            st.info("No user activity recorded yet.")
 
     elif choice == "📄 Analyze Document":
         uploaded_file = st.file_uploader("📂 Upload Legal Document (PDF)", type=["pdf"])
@@ -202,15 +236,20 @@ def main_dashboard():
 
         if uploaded_file or manual_text.strip():
             if uploaded_file:
-                file_path = DATA_RAW / uploaded_file.name
+                user_folder = DATA_RAW / user.replace("@", "_")
+                user_folder.mkdir(exist_ok=True, parents=True)
+                file_path = user_folder / uploaded_file.name
                 with open(file_path, "wb") as f:
                     f.write(uploaded_file.getbuffer())
+                log_activity(user, f"Uploaded file: {uploaded_file.name}")
+
                 text = extract_text_from_pdf(str(file_path))
                 if not text or len(text) < 20:
                     st.warning("⚠ Detected a scanned document. Applying OCR extraction...")
                     text = extract_text_with_ocr(str(file_path))
             else:
                 text = manual_text
+                log_activity(user, "Analyzed manual text")
 
             if not text or len(text) < 20:
                 st.error("❌ Could not extract readable text. Try uploading a clearer document.")
@@ -265,12 +304,15 @@ def main_dashboard():
         file1 = st.file_uploader("Upload First Document", type=["pdf"], key="file1")
         file2 = st.file_uploader("Upload Second Document", type=["pdf"], key="file2")
         if file1 and file2:
-            path1 = DATA_RAW / file1.name
-            path2 = DATA_RAW / file2.name
+            user_folder = DATA_RAW / user.replace("@", "_")
+            user_folder.mkdir(exist_ok=True, parents=True)
+            path1 = user_folder / file1.name
+            path2 = user_folder / file2.name
             with open(path1, "wb") as f:
                 f.write(file1.getbuffer())
             with open(path2, "wb") as f:
                 f.write(file2.getbuffer())
+            log_activity(user, f"Compared {file1.name} and {file2.name}")
 
             text1 = extract_text_from_pdf(str(path1))
             text2 = extract_text_from_pdf(str(path2))
@@ -320,6 +362,7 @@ def main_dashboard():
             if st.button("🗑 Clear History"):
                 history[user] = []
                 HISTORY_FILE.write_text(json.dumps(history, indent=2))
+                log_activity(user, "Cleared history")
                 st.success("✅ History cleared successfully!")
                 st.rerun()
 
@@ -329,7 +372,9 @@ def main():
     if "user" not in st.session_state:
         remembered = get_remembered_user()
         if remembered:
-            st.session_state["user"] = remembered
+            users = load_users()
+            if remembered in users:
+                st.session_state["user"] = {"email": remembered, "role": users[remembered]["role"]}
     if "user" not in st.session_state:
         login_page()
     else:
