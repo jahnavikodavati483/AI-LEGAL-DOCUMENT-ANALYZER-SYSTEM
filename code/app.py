@@ -315,14 +315,11 @@ def main_dashboard():
                 st.rerun()
 
 # ------------------ APP ENTRY ------------------
+# ------------------ APP ENTRY ------------------
 def main():
     st.set_page_config(page_title="AI Legal Document Analyzer", layout="wide")
 
-    # Ensure each visitor starts fresh
-    if "initialized" not in st.session_state:
-        st.session_state["initialized"] = True
-        st.session_state.clear()
-
+    # Each visitor starts fresh only the first time (not after login)
     if "user" not in st.session_state:
         login_page()
     else:
